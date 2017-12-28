@@ -14,6 +14,14 @@ type Circle = {
     Radius: float;
 }
 
+// Rectangle in 2D space
+type Rectangle = {
+    TopLeft: float;
+    TopRight: float;
+    BottomLeft: float;
+    BottomRight: float;
+}
+
 // calculateDistanceTo returns a euclidean distance to the target
 let calculateDistanceTo p1 p2 =
     let dX = p2.X - p1.X;

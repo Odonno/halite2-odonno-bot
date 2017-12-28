@@ -29,8 +29,7 @@ type DockingStatus =
 type Entity = { 
     Id: int;
     OwnerId: int;
-    Position: Position;
-    Radius: Radius;
+    Circle: Circle;
     Health: Health;
 }
 
@@ -100,8 +99,8 @@ let undock (ship: Ship) =
 
 // canDock indicates that a ship is close enough to a given planet to dock
 let canDock (ship: Ship) (planet: Planet) =
-    let dist = calculateDistanceTo ship.Entity.Position planet.Entity.Position
-    dist <= (ship.Entity.Radius + planet.Entity.Radius + DOCK_RADIUS)
+    let dist = calculateDistanceTo ship.Entity.Circle.Position planet.Entity.Circle.Position
+    dist <= (ship.Entity.Circle.Radius + planet.Entity.Circle.Radius + DOCK_RADIUS)
 
 // #endregion
 
@@ -159,8 +158,7 @@ let parseShip playerId (tokens: string[]) =
 
     let shipEntity = {
         Id = shipId;
-        Position = { X = shipX; Y = shipY; };
-        Radius = SHIP_RADIUS;
+        Circle = { Position = { X = shipX; Y = shipY; }; Radius = SHIP_RADIUS; };
         Health = shipHealth;
         OwnerId = playerId;
     }
@@ -193,8 +191,7 @@ let parsePlanet (tokens: string[]) =
 
     let planetEntity = {
         Id = planetId;
-        Position = { X = planetX; Y = planetY; };
-        Radius = planetRadius;
+        Circle = { Position = { X = planetX; Y = planetY }; Radius = planetRadius; };
         Health = planetHealth;
         OwnerId = planetOwnerId;
     }
@@ -299,5 +296,5 @@ let updateMap connection =
 let submitCommands (commandQueue: string[]) =
     let commandString = String.Join(" ", commandQueue)
     sendString commandString
-    
+
 // #endregion
