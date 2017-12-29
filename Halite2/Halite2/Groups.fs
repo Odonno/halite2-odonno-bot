@@ -42,7 +42,21 @@ let getUnassignedShips groups (myShips: Ship[]) =
             |> Array.exists (fun g -> g.Ship.Entity.Id = s.Entity.Id) |> not
         )
 
-let orderNewGroups (planetsToConquer: Planet[]) (myShips: Ship[]) =
+let orderNewGroupsFull (planetsToConquer: Planet[]) (myShips: Ship[]) =
+    let numberOfPlanetsToConquer = planetsToConquer.Length
+
+    myShips
+    |> Array.indexed
+    |> Array.map 
+        (fun (i, s) -> 
+            { 
+                Ship = s; 
+                Mission = Some Mining; 
+                Target = Some planetsToConquer.[i % numberOfPlanetsToConquer]; 
+            }
+        )
+
+let orderNewGroupsSimple (planetsToConquer: Planet[]) (myShips: Ship[]) =
     myShips
     |> Array.take (min myShips.Length planetsToConquer.Length)
     |> Array.indexed

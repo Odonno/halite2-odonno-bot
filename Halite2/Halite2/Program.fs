@@ -73,7 +73,7 @@ let main argv =
 
         let newGroups = 
             getUnassignedShips existingGroups myPlayer.Ships
-            |> orderNewGroups planetsToConquer
+            |> orderNewGroupsFull planetsToConquer
 
         groups <- Array.append existingGroups newGroups
 
