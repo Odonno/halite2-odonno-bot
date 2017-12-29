@@ -1,2 +1,2 @@
-dotnet build
+dotnet build ./Halite2
 .\halite.exe -d "240 160" "dotnet ./Halite2/Halite2/bin/Debug/netcoreapp2.0/Halite2.dll" "dotnet ./Halite2/Halite2/bin/Debug/netcoreapp2.0/Halite2.dll"

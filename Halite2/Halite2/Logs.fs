@@ -21,7 +21,8 @@ let disableLogs () =
     playerId <- -1
 
 let flushLogs () =
-    File.WriteAllText("logs/test-" + (playerId |> string) + ".log", "")
+    if enabled
+    then File.WriteAllText("logs/test-" + (playerId |> string) + ".log", "")
 
 let addLog text =
     if enabled
