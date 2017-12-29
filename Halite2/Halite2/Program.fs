@@ -26,7 +26,11 @@ let main argv =
         addLog ("Turn " + (gameTurn |> string) + ":")
 
         match updateMap conn with
-            | None -> Environment.Exit 1
+            | None -> 
+                (
+                    addLog ("Terminated on turn " + (gameTurn |> string))
+                    Environment.Exit 1
+                )
             | Some gameMap ->
             (
                 // Map data
@@ -68,15 +72,14 @@ let main argv =
                     |> getGroupsWithUndockedShip
 
                 // order to mine planets (based on search criteria)
-                let planetsToConquer = 
+                let planetsStatsToConquer = 
                     planetStats
                     |> Array.filter (fun stat -> stat.CanProduceMore)
                     |> Array.sortByDescending (fun stat -> (stat.ProductionInterest + 1.0) * (stat.Risk + 1.0))
-                    |> Array.map (fun stat -> stat.Planet)
 
                 let newGroups = 
                     getUnassignedShips existingGroups myPlayer.Ships
-                    |> orderNewGroupsFull planetsToConquer
+                    |> orderNewGroupsSmartMining planetsStatsToConquer
 
                 groups <- Array.append existingGroups newGroups
 

@@ -4,6 +4,7 @@ open System
 open Constants
 open Halite
 open Collisions
+open Logs
 
 type PlanetStat = {
     Planet: Planet;
@@ -13,6 +14,7 @@ type PlanetStat = {
     IsAlly: bool;
     IsEnemy: bool;
     IsNeutral: bool;
+    SlotsAvailable: int;
     CanProduceMore: bool;
 }
 
@@ -54,6 +56,8 @@ let analysePlanet planet player (livingEnemyShips: Ship[]) biggestPlanet smalles
                 | _ -> -1.0
             )
 
+    let slotsAvailable = planet.NumDockingSpots - planet.NumDockedShips
+
     {
         Planet = planet;
         MinimumReachDistance = minimumReachDistance;
@@ -62,5 +66,6 @@ let analysePlanet planet player (livingEnemyShips: Ship[]) biggestPlanet smalles
         IsAlly = isAlly;
         IsEnemy = isEnemy;
         IsNeutral = isNeutral;
-        CanProduceMore = planet.NumDockingSpots > planet.NumDockedShips;
+        SlotsAvailable = slotsAvailable;
+        CanProduceMore = slotsAvailable > 0;
     }
