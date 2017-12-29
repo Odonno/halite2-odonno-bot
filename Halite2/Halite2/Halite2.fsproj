@@ -11,6 +11,7 @@
     <Compile Include="Halite.fs" />
     <Compile Include="Logs.fs" />
     <Compile Include="Statistics.fs" />
+    <Compile Include="Groups.fs" />
     <Compile Include="Pathfinding.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

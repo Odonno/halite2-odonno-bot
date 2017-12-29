@@ -18,3 +18,6 @@ let createHeatMap (planets: Planet[]) (myShips: Ship[]) =
     {      
         Entities = Array.append planetEntities myShipEntities
     }
+
+let navigateToPlanet heatMap ship planet =
+    ""

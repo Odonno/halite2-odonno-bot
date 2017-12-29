@@ -3,6 +3,7 @@ open Halite
 open Logs
 open Pathfinding
 open Statistics
+open Groups
 
 [<EntryPoint>]
 let main argv =
@@ -16,6 +17,7 @@ let main argv =
     enableLogs conn.PlayerTag
     flushLogs()
 
+    let mutable groups = [||]
     let mutable gameMap = updateMap conn
     let mutable gameTurn = 1
 
@@ -50,17 +52,51 @@ let main argv =
             |> Array.head
 
         // Analyse / Stats
-
-        // Planet stats
-        let planetStats = 
+        
+        let planetStats = // Planet stats
             gameMap.Planets 
             |> Array.map (fun p -> analysePlanet p myPlayer livingEnemyShips biggestPlanet smallestPlanet)
+
+        // Manage groups
+        let existingGroups = 
+            groups
+            |> getLivingGroups gameMap.Planets myPlayer.Ships
+            |> getGroupsWithTarget
+            |> getGroupsWithUndockedShip
+
+        // order to mine planets (based on search criteria)
+        let planetsToConquer = 
+            planetStats
+            |> Array.filter (fun stat -> stat.CanProduceMore)
+            |> Array.sortByDescending (fun stat -> (stat.ProductionInterest + 1.0) * (stat.Risk + 1.0))
+            |> Array.map (fun stat -> stat.Planet)
+
+        let newGroups = 
+            getUnassignedShips existingGroups myPlayer.Ships
+            |> orderNewGroups planetsToConquer
+
+        groups <- Array.append existingGroups newGroups
 
         // Pathfinding
         let heatMap = createHeatMap gameMap.Planets myPlayer.Ships
 
         // get commands (move & dock)
-        let commandQueue = [| "" |]
+        let commandQueue = 
+            groups
+            |> Array.filter (fun g -> g.Target <> None)
+            |> Array.filter (fun g -> g.Ship.DockingStatus = Undocked)
+            |> Array.map 
+                (fun g -> 
+                    let ship = g.Ship
+
+                    match g.Mission with
+                    | Some Mining ->
+                        match g.Target with
+                        | Some planet when canDock ship planet -> dock ship planet
+                        | Some planet -> navigateToPlanet heatMap ship planet
+                        | None -> ""
+                    | _ -> ""                    
+                )
 
         // apply commands & go next turn
         submitCommands commandQueue
