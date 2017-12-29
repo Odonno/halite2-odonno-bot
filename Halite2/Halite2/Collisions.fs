@@ -56,3 +56,28 @@ let isInCircle position circle =
     let dX = circle.Position.X - position.X;
     let dY = circle.Position.Y - position.Y;
     (dX*dX + dY*dY) <= (circle.Radius*circle.Radius)
+
+// get tangent of the circle based on a point
+let circleTangentsFromPoint position circle =
+    let dX = circle.Position.X - position.X;
+    let dY = circle.Position.Y - position.Y;
+
+    let squareDistance = dX*dX + dY*dY
+    let squareRadius = circle.Radius*circle.Radius
+
+    let a = asin (squareRadius / squareDistance)
+    let b = atan2 dY dX
+
+    let left = 
+        { 
+            X = circle.Radius * sin (b - a);
+            Y = circle.Radius * -1.0 * cos (b - a);  
+        }
+
+    let right = 
+        { 
+            X = circle.Radius * -1.0 * sin (b + a);
+            Y = circle.Radius * cos (b + a);  
+        }
+
+    [| left; right; |]    

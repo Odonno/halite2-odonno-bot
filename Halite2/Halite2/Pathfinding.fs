@@ -14,6 +14,14 @@ type MoveOrder = {
     Angle: int;
 }
 
+// type Path = MoveOrder list
+
+// type Obstacle = Entity
+
+type PathOrObstacle =
+    | Path of MoveOrder list
+    | Obstacle of Entity   
+
 let calculateNewPosition (position: Position) distance angle =
     let radAngle = degreesToRadians (float angle)
     let x = position.X + distance * cos radAngle
@@ -79,22 +87,21 @@ let tryGetPlanetDockingDestination heatMap (ship: Ship) (planet: Planet) =
         |> Array.filter (fun entity -> circlesCollide circleOfSolution entity.Circle)
 
     anglesToCheckForPlanetMining
-    |> List.tryFind 
+    |> List.tryPick 
         (fun angle ->
             let futurePosition = calculateNewPosition planet.Entity.Circle.Position distanceToPlanet (baseAngle + angle)
 
-            filteredHeatMap
-            |> Array.exists 
-                (fun e -> 
-                    circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
-                )
-            |> not
+            let hasObstacles = 
+                filteredHeatMap
+                |> Array.exists 
+                    (fun e -> 
+                        circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
+                    )
+            
+            if hasObstacles
+            then None
+            else Some futurePosition
         )
-    |> (fun angleOption ->
-            match angleOption with
-            | Some angle -> Some (calculateNewPosition planet.Entity.Circle.Position distanceToPlanet (baseAngle + angle))
-            | None -> None
-        )     
 
 let canThrust heatMap (from: Position) speed angle = 
     [1.0..(float speed)]
@@ -110,20 +117,32 @@ let canThrust heatMap (from: Position) speed angle =
             |> not
         )
 
-let tryGoForward heatMap (from: Position) (dest: Position) =
+let tryFindObstacle heatMap (from: Position) speed angle = 
+    [1.0..(float speed)]
+    |> Seq.tryPick 
+        (fun s ->
+            let futurePosition = calculateNewPosition from s angle
+
+            heatMap.Entities
+            |> Array.tryFind 
+                (fun e -> 
+                    circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
+                )           
+        )
+
+let goForwardOrReturnFirstObstacle heatMap (from: Position) (dest: Position) =
     let distanceToDest = floor (calculateDistanceTo from dest)
     let distanceToDestInt = distanceToDest |> int
     let angle = round (calculateAngleTo from dest) |> int
 
-    match canThrust heatMap from distanceToDestInt angle with
-        | false -> None
-        | true ->
+    match tryFindObstacle heatMap from distanceToDestInt angle with
+        | Some obstacle -> obstacle |> Obstacle
+        | None ->
         (
             let numberOfTurns = ceil( distanceToDest / (float MAX_SPEED) ) |> int       
             if numberOfTurns = 0 
-            then Some []
+            then [] |> Path
             else
-            Some
                 ( 
                     [ for turn in 1 .. numberOfTurns -> 
                         (
@@ -133,15 +152,16 @@ let tryGoForward heatMap (from: Position) (dest: Position) =
                         )
                     ]
                     |> List.map (fun s -> { Speed = s; Angle = angle; }) 
-                )
+                ) |> Path
         )  
 
 let tryChooseBestPath heatMap (from: Position) (dest: Position) =
-    match tryGoForward heatMap from dest with
-        | Some path -> Some path       
-        | None ->
+    match goForwardOrReturnFirstObstacle heatMap from dest with
+        | Path path -> Some path       
+        | Obstacle obstacle ->
         (
-            // TODO : find best path with recursive (tangent of obstacles)            
+            // TODO : find best path with recursive (tangent of obstacles)   
+            let tangents = circleTangentsFromPoint from obstacle.Circle
             None
         )
 
