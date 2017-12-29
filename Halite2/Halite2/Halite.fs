@@ -108,26 +108,41 @@ let canDock (ship: Ship) (planet: Planet) =
 let sendString (input: string) = 
     Console.WriteLine input
 
-let getString () =
-    Console.ReadLine().Trim()
+let tryGetString () =
+    let input = Console.ReadLine()
+    match String.IsNullOrEmpty input with
+        | true -> None
+        | false -> Some (input.Trim())
 
-let getInt () =
-    getString() |> int  
+let tryGetInt () =
+    match tryGetString() with
+        | None -> None
+        | Some input -> Some (input |> int)
 
 // newConnection initializes a new connection for one of the bots participating in a match
 let newConnection botName = 
-    let playerTag = getInt()
-    let sizeInfo = getString().Split " "
-    let width = sizeInfo.[0] |> int
-    let height = sizeInfo.[1] |> int
+    match tryGetInt() with
+        | None -> None
+        | Some playerTag ->
+        (
+            match tryGetString() with
+                | None -> None
+                | Some input ->
+                (
+                    let sizeInfo = input.Split " "
+                    let width = sizeInfo.[0] |> int
+                    let height = sizeInfo.[1] |> int
 
-    sendString botName
+                    sendString botName
 
-    {
-        PlayerTag = playerTag;
-        Width = width;
-        Height = height;
-    }
+                    Some 
+                        {
+                            PlayerTag = playerTag;
+                            Width = width;
+                            Height = height;
+                        }
+                )
+        )
 
 // #endregion
 
@@ -287,8 +302,9 @@ let parseGameString connection (gameString: string) =
 
 // updateMap decodes the current turn's game state from a string
 let updateMap connection =
-    let gameString = getString()
-    parseGameString connection gameString
+    match tryGetString() with
+        | None -> None
+        | Some gameString -> Some (parseGameString connection gameString)
 
 // submitCommands encodes the player's commands into a string
 let submitCommands (commandQueue: string[]) =
