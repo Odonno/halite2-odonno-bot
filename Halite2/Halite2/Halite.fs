@@ -52,7 +52,6 @@ type Planet = {
     CurrentProduction: int;
     RemainingResources: int;
     DockedShipIds: int[];
-    DockedShips: Ship[] option;
     Owned: int;
 }
 
@@ -207,7 +206,6 @@ let parsePlanet (tokens: string[]) =
         CurrentProduction = planetCurrentProduction;
         RemainingResources = planetRemainingResources;
         DockedShipIds = dockedShipIds;
-        DockedShips = Option.None;
         Owned = planetOwned;
     }
 

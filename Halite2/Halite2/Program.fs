@@ -49,7 +49,7 @@ let main argv =
                 |> Array.head
 
         // Pathfinding
-        let heatmap = createHeatMap gameMap myPlayer
+        let heatmap = createHeatMap gameMap.Planets myPlayer.Ships
 
         // get commands (move & dock)
         let commandQueue = [| "" |]

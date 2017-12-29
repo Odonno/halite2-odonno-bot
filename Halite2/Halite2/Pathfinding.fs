@@ -3,23 +3,18 @@ open Collisions
 open Halite
 
 type HeatMap = {
-    Width: int;
-    Height: int;
-    Circles: Circle[];
+    Entities: Entity[];
 }
 
-let createHeatMap gameMap myPlayer = 
-    let planetCircles = 
-        gameMap.Planets
-        |> Array.map (fun p -> p.Entity.Circle)
+let createHeatMap (planets: Planet[]) (myShips: Ship[]) = 
+    let planetEntities = 
+        planets
+        |> Array.map (fun p -> p.Entity)
 
-    let stationaryShipCircles = 
-        myPlayer.Ships
-        |> Array.filter (fun s -> s.DockingStatus <> Undocked)
-        |> Array.map (fun p -> p.Entity.Circle)
+    let myShipEntities = 
+        myShips
+        |> Array.map (fun p -> p.Entity)
 
-    {
-        Width = gameMap.Width;  
-        Height = gameMap.Height;      
-        Circles = Array.append planetCircles stationaryShipCircles
+    {      
+        Entities = Array.append planetEntities myShipEntities
     }
