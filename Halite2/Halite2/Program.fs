@@ -2,6 +2,7 @@
 open Halite
 open Logs
 open Pathfinding
+open Statistics
 
 [<EntryPoint>]
 let main argv =
@@ -26,11 +27,11 @@ let main argv =
         // Map data
         let myPlayer = 
             gameMap.Players 
-                |> Array.find (fun p -> p.Id = gameMap.MyId)
+            |> Array.find (fun p -> p.Id = gameMap.MyId)
 
         let otherPlayers =
             gameMap.Players
-                |> Array.filter (fun p -> p.Id <> gameMap.MyId)
+            |> Array.filter (fun p -> p.Id <> gameMap.MyId)
 
         let livingEnemyShips = 
             otherPlayers
@@ -40,16 +41,23 @@ let main argv =
 
         let biggestPlanet = 
             gameMap.Planets 
-                |> Array.sortByDescending (fun p -> p.Entity.Circle.Radius) 
-                |> Array.head
+            |> Array.sortByDescending (fun p -> p.Entity.Circle.Radius) 
+            |> Array.head
 
         let smallestPlanet = 
             gameMap.Planets 
-                |> Array.sortBy (fun p -> p.Entity.Circle.Radius)
-                |> Array.head
+            |> Array.sortBy (fun p -> p.Entity.Circle.Radius)
+            |> Array.head
+
+        // Analyse / Stats
+
+        // Planet stats
+        let planetStats = 
+            gameMap.Planets 
+            |> Array.map (fun p -> analysePlanet p myPlayer livingEnemyShips biggestPlanet smallestPlanet)
 
         // Pathfinding
-        let heatmap = createHeatMap gameMap.Planets myPlayer.Ships
+        let heatMap = createHeatMap gameMap.Planets myPlayer.Ships
 
         // get commands (move & dock)
         let commandQueue = [| "" |]
