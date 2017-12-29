@@ -55,11 +55,7 @@ let tryGetPlanetDockingDestination heatMap (ship: Ship) (planet: Planet) =
 
     let filteredHeatMap =
         heatMap.Entities
-        |> Array.filter 
-            (fun entity -> 
-                entity.Id <> ship.Entity.Id &&
-                circlesCollide circleOfSolution entity.Circle
-            )
+        |> Array.filter (fun entity -> circlesCollide circleOfSolution entity.Circle)
 
     anglesToCheckForPlanetMining
     |> List.tryFind 
@@ -79,15 +75,26 @@ let tryGetPlanetDockingDestination heatMap (ship: Ship) (planet: Planet) =
             | None -> None
         )     
 
-let canThrust heatMap position speed angle = 
-    true // TODO
+let canThrust heatMap (from: Position) speed angle = 
+    [1.0..(float speed)]
+    |> Seq.forall 
+        (fun s ->
+            let futurePosition = calculateNewPosition from s angle
+
+            heatMap.Entities
+            |> Array.exists 
+                (fun e -> 
+                    circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
+                )
+            |> not
+        )
 
 let tryGoForward heatMap (from: Position) (dest: Position) =
     let distanceToDest = floor (calculateDistanceTo from dest)
     let distanceToDestInt = distanceToDest |> int
     let angle = round (calculateAngleTo from dest) |> int
 
-    match canThrust heatMap from distanceToDest angle with
+    match canThrust heatMap from distanceToDestInt angle with
         | false -> None
         | true ->
         (
@@ -118,15 +125,19 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
         )
 
 let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
+    // use heat map without own ship
+    let heatMapWithoutOwnShip =
+        { Entities = heatMap.Entities |> Array.filter (fun e -> e.Id <> ship.Entity.Id) }
+
     // target one destination point (close to planet)
-    let destinationOption = tryGetPlanetDockingDestination heatMap ship planet
+    let destinationOption = tryGetPlanetDockingDestination heatMapWithoutOwnShip ship planet
 
     match destinationOption with
         | None -> ""
         | Some dest -> 
         (
             // choose best move orders (path) to go to dest
-            let bestPathOption = tryChooseBestPath heatMap ship.Entity.Circle.Position dest
+            let bestPathOption = tryChooseBestPath heatMapWithoutOwnShip ship.Entity.Circle.Position dest
         
             match bestPathOption with
                 | None -> ""
