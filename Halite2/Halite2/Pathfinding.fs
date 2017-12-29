@@ -14,6 +14,12 @@ type MoveOrder = {
     Angle: int;
 }
 
+let calculateNewPosition (position: Position) distance angle =
+    let radAngle = degreesToRadians (float angle)
+    let x = position.X + distance * cos radAngle
+    let y = position.Y + distance * sin radAngle
+    { X = x; Y = y }
+
 let createHeatMap (planets: Planet[]) (myShips: Ship[]) = 
     let planetEntities = 
         planets
@@ -27,11 +33,26 @@ let createHeatMap (planets: Planet[]) (myShips: Ship[]) =
         Entities = Array.append planetEntities myShipEntities
     }
 
-let calculateNewPosition (position: Position) distance angle =
-    let radAngle = degreesToRadians (float angle)
-    let x = position.X + distance * cos radAngle
-    let y = position.Y + distance * sin radAngle
-    { X = x; Y = y }
+let updateHeatMapWithNewPath heatMap (ship: Ship) path =
+    let mutable futurePosition = ship.Entity.Circle.Position
+
+    let moveEntities =
+        path
+        |> List.map 
+            (fun moveOrder ->
+                [| 1..(moveOrder.Speed) |]
+                |> Array.map 
+                    (fun _ ->
+                        futurePosition <- calculateNewPosition futurePosition 1.0 moveOrder.Angle
+                        let circle = { Position = futurePosition; Radius = SHIP_RADIUS; }
+                        { ship.Entity with Circle = circle; }
+                    )
+            )
+        |> List.reduce Array.append
+        
+    {
+        Entities = Array.append heatMap.Entities moveEntities
+    }
 
 let anglesToCheckForPlanetMining = 
     [0..180]
@@ -133,21 +154,24 @@ let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
     let destinationOption = tryGetPlanetDockingDestination heatMapWithoutOwnShip ship planet
 
     match destinationOption with
-        | None -> ""
+        | None -> (heatMap, "")
         | Some dest -> 
         (
             // choose best move orders (path) to go to dest
             let bestPathOption = tryChooseBestPath heatMapWithoutOwnShip ship.Entity.Circle.Position dest
         
             match bestPathOption with
-                | None -> ""
-                | Some [] -> ""
+                | None -> (heatMap, "")
+                | Some [] -> (heatMap, "")
                 | Some bestPath ->
                 (
-                    // TODO : update heatmap based on orders
+                    // update heatmap based on orders
+                    let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
 
                     // move using the first order
                     let firstOrder = bestPath.[0]
-                    thrust ship firstOrder.Speed firstOrder.Angle
+                    let command = thrust ship firstOrder.Speed firstOrder.Angle
+
+                    (newHeatMap, command)
                 )
         )

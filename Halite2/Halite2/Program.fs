@@ -84,7 +84,7 @@ let main argv =
                 groups <- Array.append existingGroups newGroups
 
                 // Pathfinding
-                let heatMap = createHeatMap gameMap.Planets myPlayer.Ships
+                let mutable heatMap = createHeatMap gameMap.Planets myPlayer.Ships
 
                 // get commands (move & dock)
                 let commandQueue = 
@@ -99,7 +99,13 @@ let main argv =
                             | Some Mining ->
                                 match g.Target with
                                 | Some planet when canDock ship planet -> dock ship planet
-                                | Some planet -> navigateToPlanet heatMap ship planet
+                                | Some planet -> 
+                                    (
+                                        let updatedheatMap, command = navigateToPlanet heatMap ship planet
+                                        heatMap <- updatedheatMap
+
+                                        command
+                                    )                                    
                                 | None -> ""
                             | _ -> ""                    
                         )
