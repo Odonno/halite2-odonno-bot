@@ -29,6 +29,19 @@ let calculateNewPosition (position: Position) distance angle =
     let y = position.Y + distance * sin radAngle
     { X = x; Y = y }
 
+let entitiesCollidingAndSelf heatMap entity =
+    let rec recursiveEntitiesCollidingAndSelf entityToCompare entitiesToMatch entitiesFound =
+        match entitiesToMatch with
+        | [] -> entitiesFound
+        | head :: tail -> 
+        (
+            if circlesCollide head.Circle entityToCompare.Circle
+            then recursiveEntitiesCollidingAndSelf head tail (head::entitiesFound)
+            else recursiveEntitiesCollidingAndSelf entityToCompare tail entitiesFound
+        )        
+
+    recursiveEntitiesCollidingAndSelf entity (heatMap.Entities |> Array.toList) []
+
 let createHeatMap (planets: Planet[]) (myShips: Ship[]) = 
     let planetEntities = 
         planets
@@ -182,81 +195,95 @@ let tryGetPositionBetween heatMap from minSpeed maxSpeed angle =
         )    
 
 let tryChooseBestPath heatMap (from: Position) (dest: Position) =
-    let rec tryChooseBestPath heatMap (from: Position) (dest: Position) pathSideOption (previousObstacleOption: Entity option) =
+    let rec recursiveTryChooseBestPath heatMap (from: Position) (dest: Position) pathSideOption (previousObstacleOption: Entity option) =
         match goForwardOrReturnFirstObstacle heatMap from dest with
             | Path path -> Some path       
             | Obstacle obstacle ->
             (
+                // find the most useful obstacle (full left & full right)
+                let allPossibleObstacles = entitiesCollidingAndSelf heatMap obstacle
+                let orderedPossibleObstaclesByAngle = 
+                    allPossibleObstacles 
+                    |> List.sortBy (fun o -> cos (calculateRadAngleTo from o.Circle.Position))
+
+                let leftObstacle = orderedPossibleObstaclesByAngle |> List.head
+                let rightObstacle = orderedPossibleObstaclesByAngle |> List.last
+ 
                 let useLeftPath = 
                     match (pathSideOption, previousObstacleOption) with
                     | (Some pathSide, Some previousObstacle) 
-                        when (pathSide = Right && previousObstacle.Id = obstacle.Id) -> false
+                        when (pathSide = Right && previousObstacle.Id = leftObstacle.Id) -> false
                     | _ -> true
                 let useRightPath = 
                     match (pathSideOption, previousObstacleOption) with
                     | (Some pathSide, Some previousObstacle) 
-                        when (pathSide = Left && previousObstacle.Id = obstacle.Id) -> false
+                        when (pathSide = Left && previousObstacle.Id = rightObstacle.Id) -> false
                     | _ -> true
 
-                // find best path with recursive (tangent of obstacles)   
-                let tangents = circleTangentsFromPoint from obstacle.Circle
-                
-                // find best path from left or right tangent
-                let leftTangent = tangents.[0]
-                let rightTangent = tangents.[1]
-
-                // calculate angles of the tangents (based on the from location)
-                let distanceFromToDest = calculateDistanceTo from dest
+                // calculate base distance and angle
+                let baseDistance = calculateDistanceTo from dest
                 let baseAngle = calculateAngleTo from dest
 
-                let tangentAngle = (calculateAngleTo dest leftTangent) |> floor
-
-                let leftAngle = (baseAngle - tangentAngle) |> floor
-                let rightAngle = (baseAngle + tangentAngle) |> floor
-
-                // get min length ("from" to "tangent" point length)
-                let minSpeedTangent = ceil(calculateDistanceTo from leftTangent) |> int
-
-                // get max length of the tangent (right angle to dest)
-                let maxSpeedTangent = ceil(distanceFromToDest * cos leftAngle) |> int
-
-                // left tangent
-                let leftPath = 
+                // find best path with recursive (tangent of obstacles) 
+                let leftPathOption =
                     match useLeftPath with
                     | false -> None
                     | true ->
                     (
+                        let tangents = circleTangentsFromPoint from leftObstacle.Circle
+                        let tangent = tangents.[0]
+
+                        let tangentAngle = (calculateAngleTo dest tangent) |> floor
+                        let leftAngle = (baseAngle - tangentAngle) |> floor
+
+                        // get min length ("from" to "tangent" point length)
+                        let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
+
+                        // get max length of the tangent (right angle to dest)
+                        let maxSpeedTangent = ceil(baseDistance * cos leftAngle) |> int
+
                         let leftPositionBeforeObstacleOption = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int leftAngle)
                         match leftPositionBeforeObstacleOption with
                         | None -> None
-                        | Some leftPosition -> tryChooseBestPath heatMap leftPosition dest (Some Left) (Some obstacle)
+                        | Some leftPosition -> recursiveTryChooseBestPath heatMap leftPosition dest (Some Left) (Some leftObstacle)
                     )
 
-                // right tangent
-                let rightPath = 
+                let rightPathOption =
                     match useRightPath with
                     | false -> None
                     | true ->
                     (
+                        let tangents = circleTangentsFromPoint from rightObstacle.Circle
+                        let tangent = tangents.[0]
+
+                        let tangentAngle = (calculateAngleTo dest tangent) |> floor
+                        let rightAngle = (baseAngle + tangentAngle) |> floor
+
+                        // get min length ("from" to "tangent" point length)
+                        let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
+
+                        // get max length of the tangent (right angle to dest)
+                        let maxSpeedTangent = ceil(baseDistance * cos rightAngle) |> int
+
                         let rightPositionBeforeObstacle = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int rightAngle)
                         match rightPositionBeforeObstacle with
                         | None -> None
-                        | Some rightPosition -> tryChooseBestPath heatMap rightPosition dest (Some Right) (Some obstacle)
+                        | Some rightPosition -> recursiveTryChooseBestPath heatMap rightPosition dest (Some Right) (Some rightObstacle)
                     )
 
-                // use the fastest path
-                match (leftPath, rightPath) with
+                // find best path from left or right tangent (use the fastest path)
+                match (leftPathOption, rightPathOption) with
                     | (None, None) -> None
-                    | (Some left, None) -> Some left
-                    | (None, Some right) -> Some right
-                    | (Some left, Some right) -> 
+                    | (Some leftPath, None) -> Some leftPath
+                    | (None, Some rightPath) -> Some rightPath
+                    | (Some leftPath, Some rightPath) -> 
                         Some (
-                            if left.Length <= right.Length 
-                            then left 
-                            else right
+                            if leftPath.Length <= rightPath.Length 
+                            then leftPath 
+                            else rightPath
                         )
             )
-    tryChooseBestPath heatMap from dest None None
+    recursiveTryChooseBestPath heatMap from dest None None
 
 let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
     // use heat map without own ship
