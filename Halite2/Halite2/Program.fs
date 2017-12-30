@@ -69,7 +69,6 @@ let main argv =
                     groups
                     |> getLivingGroups gameMap.Planets myPlayer.Ships
                     |> getGroupsWithTarget
-                    |> getGroupsWithUndockedShip
 
                 // order to mine planets (based on search criteria)
                 let planetsStatsToConquer = 
@@ -79,7 +78,7 @@ let main argv =
 
                 let newGroups = 
                     getUnassignedShips existingGroups myPlayer.Ships
-                    |> orderNewGroupsSmartMining planetsStatsToConquer
+                    |> orderNewGroupsSmartMining existingGroups planetsStatsToConquer
 
                 groups <- Array.append existingGroups newGroups
 
@@ -89,8 +88,8 @@ let main argv =
                 // get commands (move & dock)
                 let commandQueue = 
                     groups
-                    |> Array.filter (fun g -> g.Target <> None)
-                    |> Array.filter (fun g -> g.Ship.DockingStatus = Undocked)
+                    |> getGroupsWithUndockedShip
+                    |> getGroupsWithTarget
                     |> Array.map 
                         (fun g -> 
                             let ship = g.Ship

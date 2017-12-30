@@ -52,10 +52,28 @@ type MiningPlanet = {
     SlotsToMine: int;
 }
 
-let orderNewGroupsSmartMining (planetsStatsToConquer: PlanetStat[]) (myShips: Ship[]) =
+let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToConquer: PlanetStat[]) (myShips: Ship[]) =
     let slotsToMine = 
         planetsStatsToConquer
-        |> Array.map (fun stat -> { Planet = stat.Planet; SlotsToMine = stat.SlotsAvailable; })
+        |> Array.map 
+            (fun stat -> 
+                let currentlyDockingShipsToPlanet =
+                    existingGroups
+                    |> Array.filter 
+                        (fun g -> 
+                            g.Ship.DockingStatus = Docking &&
+                            g.Target.IsSome &&
+                            g.Target.Value.Entity.Id = stat.Planet.Entity.Id &&
+                            g.Mission.IsSome && 
+                            g.Mission.Value = Mining
+                        )
+
+                { 
+                    Planet = stat.Planet;
+                    SlotsToMine = stat.SlotsAvailable - (currentlyDockingShipsToPlanet.Length); 
+                }
+            )
+        |> Array.filter (fun stm -> stm.SlotsToMine > 0)  
 
     if (slotsToMine.Length <= 0)
     then [||]
