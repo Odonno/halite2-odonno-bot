@@ -129,7 +129,15 @@ let tryGetPlanetDockingDestination heatMap (ship: Ship) (planet: Planet) =
         )
 
 let tryGetPositionNearEnemyShip heatMap (ship: Ship) (enemyShip: Ship) =
-    let baseAngle = round (calculateAngleTo enemyShip.Entity.Circle.Position ship.Entity.Circle.Position) |> int
+    let baseAngle = 
+        match enemyShip.DockingStatus with
+        | Undocked -> round (calculateAngleTo enemyShip.Entity.Circle.Position ship.Entity.Circle.Position) |> int
+        | _ -> 
+        (
+            let planetEntity = heatMap.Entities |> Array.find (fun e -> e.Id = enemyShip.PlanetId)
+            round (calculateAngleTo planetEntity.Circle.Position enemyShip.Entity.Circle.Position) |> int
+        )        
+
     let distanceToEnemyShip = (enemyShip.Entity.Circle.Radius + 3.0)
 
     let circleOfSolution = 
