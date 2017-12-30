@@ -3,18 +3,23 @@
 open System
 open Halite
 open Statistics
+open Collisions
 
 type GroupMission = 
     | Mining
     | Attack
 
+type Target =
+    | Planet of Planet
+    | Ship of Ship
+
 type Group = {
     Ship: Ship; // TODO : From 1 ship per group To N ships per group
     Mission: GroupMission option;
-    Target: Planet option;
+    Target: Target option;
 }
 
-let getLivingGroups (planets: Planet[]) (myShips: Ship[]) groups = 
+let getLivingGroups (planets: Planet[]) (enemyShips: Ship[]) (myShips: Ship[]) groups = 
     groups 
     |> Array.map (fun g -> (g, myShips |> Array.tryFind (fun s -> s.Entity.Id = g.Ship.Entity.Id)))
     |> Array.filter (fun (_, shipOption) -> shipOption.IsSome)
@@ -24,7 +29,8 @@ let getLivingGroups (planets: Planet[]) (myShips: Ship[]) groups =
                 Target = 
                     match g.Target with
                     | None -> None
-                    | Some t -> (planets |> Array.tryFind (fun p -> p.Entity.Id = t.Entity.Id));
+                    | Some (Planet t) -> (planets |> Array.tryFind (fun p -> p.Entity.Id = t.Entity.Id)) |> (fun p -> if p.IsNone then None else Some (Planet p.Value))
+                    | Some (Ship t) -> (enemyShips |> Array.tryFind (fun s -> s.Entity.Id = t.Entity.Id)) |> (fun s -> if s.IsNone then None else Some (Ship s.Value))
                 Ship = shipOption.Value
             }
         )
@@ -52,18 +58,26 @@ type MiningPlanet = {
     SlotsToMine: int;
 }
 
-let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToConquer: PlanetStat[]) (myShips: Ship[]) =
+let tryGetPlanetTarget (target: Target option) =
+    match target with
+    | None -> None
+    | Some (Planet p) -> Some p
+    | _ -> None
+
+let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: PlanetStat[]) (myShips: Ship[]) =
     let slotsToMine = 
-        planetsStatsToConquer
+        planetsStatsToMine
         |> Array.map 
             (fun stat -> 
                 let currentlyDockingShipsToPlanet =
                     existingGroups
                     |> Array.filter 
                         (fun g -> 
+                            let planetTarget = tryGetPlanetTarget g.Target
+
                             g.Ship.DockingStatus = Docking &&
-                            g.Target.IsSome &&
-                            g.Target.Value.Entity.Id = stat.Planet.Entity.Id &&
+                            planetTarget.IsSome &&
+                            planetTarget.Value.Entity.Id = stat.Planet.Entity.Id &&
                             g.Mission.IsSome && 
                             g.Mission.Value = Mining
                         )
@@ -92,7 +106,7 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToConquer: 
                                 { 
                                     Ship = s; 
                                     Mission = Some Mining; 
-                                    Target = Some stm.Planet;
+                                    Target = Some (Planet stm.Planet);
                                 }
                             )
 
@@ -108,7 +122,13 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToConquer: 
                 (fun stm ->
                     let numberOfShipsImmediatelyDocked = 
                         groupsOfImmediateDockableShips
-                        |> Array.filter (fun g -> g.Target.IsSome && g.Target.Value.Entity.Id = stm.Planet.Entity.Id)
+                        |> Array.filter 
+                            (fun g -> 
+                                let planetTarget = tryGetPlanetTarget g.Target
+
+                                planetTarget.IsSome && 
+                                planetTarget.Value.Entity.Id = stm.Planet.Entity.Id
+                            )
                         |> Array.length
 
                     { stm with SlotsToMine = stm.SlotsToMine - numberOfShipsImmediatelyDocked }
@@ -138,7 +158,7 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToConquer: 
                         { 
                             Ship = remainingShips.[i]; 
                             Mission = Some Mining; 
-                            Target = Some p;
+                            Target = Some (Planet p);
                         }
                     )
 
@@ -154,7 +174,7 @@ let orderNewGroupsFullMining (planetsToConquer: Planet[]) (myShips: Ship[]) =
             { 
                 Ship = s; 
                 Mission = Some Mining; 
-                Target = Some planetsToConquer.[i % numberOfPlanetsToConquer]; 
+                Target = Some (Planet planetsToConquer.[i % numberOfPlanetsToConquer]);
             }
         )
 
@@ -162,4 +182,28 @@ let orderNewGroupsSimpleMining (planetsToConquer: Planet[]) (myShips: Ship[]) =
     myShips
     |> Array.take (min myShips.Length planetsToConquer.Length)
     |> Array.indexed
-    |> Array.map (fun (i, s) -> { Ship = s; Mission = Some Mining; Target = Some planetsToConquer.[i]; })
+    |> Array.map (fun (i, s) -> { Ship = s; Mission = Some Mining; Target = Some (Planet planetsToConquer.[i]); })
+
+let orderNewGroupsDumbAttack (enemyShips: Ship[]) (myShips: Ship[]) =
+    let dockedEnemyShips =
+        enemyShips
+        |> Array.filter (fun s -> s.DockingStatus = Docked)
+
+    myShips
+    |> Array.map 
+        (fun myShip ->
+            // find closest enemy ship
+            let enemy = 
+                dockedEnemyShips
+                |> Array.sortBy (fun es -> calculateDistanceTo myShip.Entity.Circle.Position es.Entity.Circle.Position)
+                |> Array.tryHead
+
+            {
+                Ship = myShip;
+                Mission = Some Attack;
+                Target = 
+                    match enemy with
+                    | None -> None
+                    | Some e -> Some (Ship e)
+            }
+        )

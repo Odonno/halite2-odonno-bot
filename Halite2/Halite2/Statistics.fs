@@ -18,7 +18,7 @@ type PlanetStat = {
     CanProduceMore: bool;
 }
 
-let analysePlanet planet player (livingEnemyShips: Ship[]) biggestPlanet smallestPlanet =
+let analysePlanet planet player (undockedEnemyShips: Ship[]) biggestPlanet smallestPlanet =
     let productionInterest = 
         (planet.Entity.Circle.Radius - smallestPlanet.Entity.Circle.Radius) / 
         (biggestPlanet.Entity.Circle.Radius - smallestPlanet.Entity.Circle.Radius);
@@ -43,10 +43,10 @@ let analysePlanet planet player (livingEnemyShips: Ship[]) biggestPlanet smalles
         match isNeutral with
         | true -> 
             (
-                livingEnemyShips
+                undockedEnemyShips
                 |> Array.map (fun s -> (minimumReachDistance + (2.0 * float MAX_SPEED)) - (calculateDistanceTo planet.Entity.Circle.Position s.Entity.Circle.Position))
                 |> Array.sortDescending
-                |> Array.take (min livingEnemyShips.Length 5)
+                |> Array.take (min undockedEnemyShips.Length 5)
                 |> Array.sumBy (fun x -> Math.Clamp(x * -1.0 * 0.2, -0.2, 0.2))
             )
         | _ -> 

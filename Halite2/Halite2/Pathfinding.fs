@@ -87,7 +87,7 @@ let updateHeatMapWithNewPath heatMap (ship: Ship) path =
         Entities = Array.append heatMap.Entities moveEntities
     }
 
-let anglesToCheckForPlanetMining = 
+let anglesToCheckForDestination = 
     [0..180]
     |> List.map 
         (fun i -> 
@@ -111,10 +111,41 @@ let tryGetPlanetDockingDestination heatMap (ship: Ship) (planet: Planet) =
         heatMap.Entities
         |> Array.filter (fun entity -> circlesCollide circleOfSolution entity.Circle)
 
-    anglesToCheckForPlanetMining
+    anglesToCheckForDestination
     |> List.tryPick 
         (fun angle ->
             let futurePosition = calculateNewPosition planet.Entity.Circle.Position distanceToPlanet (baseAngle + angle)
+
+            let hasObstacles = 
+                filteredHeatMap
+                |> Array.exists 
+                    (fun e -> 
+                        circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
+                    )
+            
+            if hasObstacles
+            then None
+            else Some futurePosition
+        )
+
+let tryGetPositionNearEnemyShip heatMap (ship: Ship) (enemyShip: Ship) =
+    let baseAngle = round (calculateAngleTo enemyShip.Entity.Circle.Position ship.Entity.Circle.Position) |> int
+    let distanceToEnemyShip = (enemyShip.Entity.Circle.Radius + 3.0)
+
+    let circleOfSolution = 
+        {
+            Position = enemyShip.Entity.Circle.Position;
+            Radius = distanceToEnemyShip;
+        }
+
+    let filteredHeatMap =
+        heatMap.Entities
+        |> Array.filter (fun entity -> circlesCollide circleOfSolution entity.Circle)
+        
+    anglesToCheckForDestination
+    |> List.tryPick 
+        (fun angle ->
+            let futurePosition = calculateNewPosition enemyShip.Entity.Circle.Position distanceToEnemyShip (baseAngle + angle)
 
             let hasObstacles = 
                 filteredHeatMap
@@ -141,6 +172,10 @@ let canThrust heatMap (from: Position) speed angle =
                 )
             |> not
         )
+
+let canFight (ship: Ship) (enemyShip: Ship) =
+    let distance = calculateDistanceTo ship.Entity.Circle.Position enemyShip.Entity.Circle.Position
+    distance <= WEAPON_RADIUS
 
 let tryFindObstacle heatMap (from: Position) speed angle = 
     [1.0..(float speed)]
@@ -244,8 +279,8 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                         let tangents = circleTangentsFromPoint from leftObstacle.Circle
                         let tangent = tangents.[0]
 
-                        let tangentAngle = (calculateAngleTo dest tangent) |> floor
-                        let leftAngle = (baseAngle - tangentAngle) |> floor
+                        let tangentAngle = calculateAngleTo dest tangent
+                        let leftAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> ceil
 
                         // get min length ("from" to "tangent" point length)
                         let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
@@ -265,10 +300,10 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                     | true ->
                     (
                         let tangents = circleTangentsFromPoint from rightObstacle.Circle
-                        let tangent = tangents.[0]
+                        let tangent = tangents.[1]
 
-                        let tangentAngle = (calculateAngleTo dest tangent) |> floor
-                        let rightAngle = (baseAngle + tangentAngle) |> floor
+                        let tangentAngle = calculateAngleTo dest tangent
+                        let rightAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> floor
 
                         // get min length ("from" to "tangent" point length)
                         let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
@@ -304,6 +339,37 @@ let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
     // target one destination point (close to planet)
     let destinationOption = tryGetPlanetDockingDestination heatMapWithoutOwnShip ship planet
 
+    match destinationOption with
+        | None -> (heatMap, "")
+        | Some dest -> 
+        (
+            // choose best move orders (path) to go to dest
+            let bestPathOption = tryChooseBestPath heatMapWithoutOwnShip ship.Entity.Circle.Position dest
+        
+            match bestPathOption with
+                | None -> (heatMap, "")
+                | Some [] -> (heatMap, "")
+                | Some bestPath ->
+                (
+                    // update heatmap based on orders
+                    let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
+
+                    // move using the first order
+                    let firstOrder = bestPath.[0]
+                    let command = thrust ship firstOrder.Speed firstOrder.Angle
+
+                    (newHeatMap, command)
+                )
+        )
+
+let navigateCloseToEnemy heatMap (ship: Ship) (enemyShip: Ship) =
+    // use heat map without own ship
+    let heatMapWithoutOwnShip =
+        { Entities = heatMap.Entities |> Array.filter (fun e -> e.Id <> ship.Entity.Id) }
+    
+    // target one destination point (close to enemy ship)
+    let destinationOption = tryGetPositionNearEnemyShip heatMapWithoutOwnShip ship enemyShip
+    
     match destinationOption with
         | None -> (heatMap, "")
         | Some dest -> 

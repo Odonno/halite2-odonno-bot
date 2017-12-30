@@ -42,10 +42,13 @@ let main argv =
                     gameMap.Players
                     |> Array.filter (fun p -> p.Id <> gameMap.MyId)
 
-                let livingEnemyShips = 
+                let enemyShips =
                     otherPlayers
                     |> Array.map (fun p -> p.Ships)
                     |> Array.reduce Array.append
+
+                let undockedEnemyShips = 
+                    enemyShips
                     |> Array.filter (fun s -> s.DockingStatus = DockingStatus.Undocked)
 
                 let biggestPlanet = 
@@ -62,25 +65,33 @@ let main argv =
                 
                 let planetStats = // Planet stats
                     gameMap.Planets 
-                    |> Array.map (fun p -> analysePlanet p myPlayer livingEnemyShips biggestPlanet smallestPlanet)
+                    |> Array.map (fun p -> analysePlanet p myPlayer undockedEnemyShips biggestPlanet smallestPlanet)
 
                 // Manage groups
                 let existingGroups = 
                     groups
-                    |> getLivingGroups gameMap.Planets myPlayer.Ships
+                    |> getLivingGroups gameMap.Planets enemyShips myPlayer.Ships
                     |> getGroupsWithTarget
 
                 // order to mine planets (based on search criteria)
-                let planetsStatsToConquer = 
+                let planetsStatsToMine = 
                     planetStats
                     |> Array.filter (fun stat -> stat.CanProduceMore)
+                    |> Array.filter (fun stat -> not stat.IsEnemy)
                     |> Array.sortByDescending (fun stat -> (stat.ProductionInterest + 1.0) * (stat.Risk + 1.0))
 
-                let newGroups = 
+                let newMiningGroups = 
                     getUnassignedShips existingGroups myPlayer.Ships
-                    |> orderNewGroupsSmartMining existingGroups planetsStatsToConquer
+                    |> orderNewGroupsSmartMining existingGroups planetsStatsToMine
 
-                groups <- Array.append existingGroups newGroups
+                let groups2 = Array.append existingGroups newMiningGroups
+
+                // order to attack enemy ships
+                let newAttackGroups = 
+                    getUnassignedShips groups2 myPlayer.Ships
+                    |> orderNewGroupsDumbAttack enemyShips
+
+                groups <- Array.append groups2 newAttackGroups
 
                 // Pathfinding
                 let mutable heatMap = createHeatMap gameMap.Planets myPlayer.Ships
@@ -97,15 +108,25 @@ let main argv =
                             match g.Mission with
                             | Some Mining ->
                                 match g.Target with
-                                | Some planet when canDock ship planet -> dock ship planet
-                                | Some planet -> 
+                                | Some (Planet planet) when canDock ship planet -> dock ship planet
+                                | Some (Planet planet) -> 
                                     (
                                         let updatedheatMap, command = navigateToPlanet heatMap ship planet
                                         heatMap <- updatedheatMap
 
                                         command
+                                    )                                 
+                                | _ -> ""
+                            | Some Attack ->
+                                match g.Target with
+                                | Some (Ship enemyShip) when not (canFight ship enemyShip) -> 
+                                    (
+                                        let updatedheatMap, command = navigateCloseToEnemy heatMap ship enemyShip
+                                        heatMap <- updatedheatMap
+
+                                        command
                                     )                                    
-                                | None -> ""
+                                | _ -> ""
                             | _ -> ""                    
                         )
 
