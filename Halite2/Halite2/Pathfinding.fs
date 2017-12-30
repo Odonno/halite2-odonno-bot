@@ -155,14 +155,77 @@ let goForwardOrReturnFirstObstacle heatMap (from: Position) (dest: Position) =
                 ) |> Path
         )  
 
-let tryChooseBestPath heatMap (from: Position) (dest: Position) =
+let tryGetPositionBetween heatMap from minSpeed maxSpeed angle =
+    [1..maxSpeed]
+    |> Seq.tryPick 
+        (fun s ->
+            let futurePosition = calculateNewPosition from (float s) angle
+            
+            let hasObstacles = 
+                heatMap.Entities
+                |> Array.exists 
+                    (fun e -> 
+                        circlesCollide ({ Position = futurePosition; Radius = SHIP_RADIUS }) e.Circle
+                    )
+            
+            if hasObstacles
+            then None
+            else Some (s, futurePosition)              
+        )
+    |> 
+        (fun x ->
+            match x with
+                | None -> None
+                | Some (s, _) when s < minSpeed -> None
+                | Some (_, position) -> Some position
+        )    
+
+let rec tryChooseBestPath heatMap (from: Position) (dest: Position) =
     match goForwardOrReturnFirstObstacle heatMap from dest with
         | Path path -> Some path       
         | Obstacle obstacle ->
         (
-            // TODO : find best path with recursive (tangent of obstacles)   
+            // find best path with recursive (tangent of obstacles)   
             let tangents = circleTangentsFromPoint from obstacle.Circle
-            None
+            
+            // find best path from left or right tangent
+            let leftTangent = tangents.[0]
+            let rightTangent = tangents.[1]
+
+            // get min length ("from" to "tangent" point length)
+            let minSpeedTangent = ceil(calculateDistanceTo from leftTangent) |> int
+
+            // get max length of the tangent (right angle to dest)
+            let distanceFromToDest = calculateDistanceTo from dest
+            let angle = (calculateAngleTo dest leftTangent) |> floor
+            let angleInt = angle |> int
+            let maxSpeedTangent = ceil(distanceFromToDest * cos angle) |> int
+
+            // left tangent
+            let leftPositionBeforeObstacleOption = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent angleInt
+            let leftPath = 
+                match leftPositionBeforeObstacleOption with
+                | None -> None
+                | Some leftPosition -> tryChooseBestPath heatMap leftPosition dest
+
+            // right tangent
+            let rightPositionBeforeObstacle = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent -angleInt
+            let rightPath = 
+                match rightPositionBeforeObstacle with
+                | None -> None
+                | Some rightPosition -> tryChooseBestPath heatMap rightPosition dest
+
+            // use the fastest path
+            match (leftPath, rightPath) with
+                | (None, None) -> None
+                | (Some left, None) -> Some left
+                | (None, Some right) -> Some right
+                | (Some left, Some right) -> 
+                    Some (
+                        if left.Length <= right.Length 
+                        then left 
+                        else right
+                    )
         )
 
 let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
