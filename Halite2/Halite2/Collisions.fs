@@ -51,6 +51,13 @@ let circlesCollide c1 c2 =
     let radiusSum = c1.Radius + c2.Radius
     (dX*dX + dY*dY) <= (radiusSum*radiusSum)
 
+// detects if two circles collides
+let circlesCollideWithExpandedRadius c1 c2 expandedRadius =
+    let dX = c2.Position.X - c1.Position.X;
+    let dY = c2.Position.Y - c1.Position.Y;
+    let radiusSum = c1.Radius + c2.Radius + expandedRadius
+    (dX*dX + dY*dY) <= (radiusSum*radiusSum)
+
 // detect if 2D object is in a circle
 let isInCircle position circle =
     let dX = circle.Position.X - position.X;

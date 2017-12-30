@@ -29,15 +29,26 @@ let calculateNewPosition (position: Position) distance angle =
     let y = position.Y + distance * sin radAngle
     { X = x; Y = y }
 
-let entitiesCollidingAndSelf heatMap entity =
+let entitiesCollidingAndSelf heatMap entity expandedRadius =
     let rec recursiveEntitiesCollidingAndSelf entityToCompare entitiesToMatch entitiesFound =
         match entitiesToMatch with
         | [] -> entitiesFound
         | head :: tail -> 
         (
-            if circlesCollide head.Circle entityToCompare.Circle
-            then recursiveEntitiesCollidingAndSelf head tail (head::entitiesFound)
-            else recursiveEntitiesCollidingAndSelf entityToCompare tail entitiesFound
+            if circlesCollideWithExpandedRadius head.Circle entityToCompare.Circle expandedRadius
+            then 
+                recursiveEntitiesCollidingAndSelf 
+                    entityToCompare 
+                    tail
+                    (head::entitiesFound)
+                @
+                recursiveEntitiesCollidingAndSelf 
+                    head 
+                    tail
+                    []
+                |> List.distinctBy (fun e -> e.Id)
+            else
+                recursiveEntitiesCollidingAndSelf entityToCompare tail entitiesFound
         )        
 
     recursiveEntitiesCollidingAndSelf entity (heatMap.Entities |> Array.toList) []
@@ -201,7 +212,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
             | Obstacle obstacle ->
             (
                 // find the most useful obstacle (full left & full right)
-                let allPossibleObstacles = entitiesCollidingAndSelf heatMap obstacle
+                let allPossibleObstacles = entitiesCollidingAndSelf heatMap obstacle SHIP_RADIUS
                 let orderedPossibleObstaclesByAngle = 
                     allPossibleObstacles 
                     |> List.sortBy (fun o -> cos (calculateRadAngleTo from o.Circle.Position))

@@ -95,3 +95,161 @@ let ``Try go forward returns two paths if no obstacle`` () =
                 Assert.Equal(0, p.[0].Angle)
             )
         | _ -> Assert.False(true)
+
+[<Fact>]
+let ``Entities colliding and self should return only self if only one entity`` () =
+    let entities = 
+        [| 
+            {
+                Id = 1;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 1.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            }
+        |]
+    let heatMap = { Entities = entities }
+
+    let resultEntities = entitiesCollidingAndSelf heatMap entities.[0] 0.0
+
+    Assert.Equal(1, resultEntities.Length)
+    Assert.Equal(1, resultEntities.[0].Id)
+
+[<Fact>]
+let ``Entities colliding and self should return only self if not colliding entity`` () =
+    let entities = 
+        [| 
+            {
+                Id = 1;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 1.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 2;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 5.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 3;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 0.0; Y = 5.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            }
+        |]
+    let heatMap = { Entities = entities }
+
+    let resultEntities = entitiesCollidingAndSelf heatMap entities.[0] 0.0
+
+    Assert.Equal(1, resultEntities.Length)
+    Assert.Equal(1, resultEntities.[0].Id)
+
+[<Fact>]
+let ``Entities colliding and self should return two entities including self if one collide another one`` () =
+    let entities = 
+        [| 
+            {
+                Id = 1;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 1.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 2;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 5.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 3;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 0.5; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            }
+        |]
+    let heatMap = { Entities = entities }
+
+    let resultEntities = entitiesCollidingAndSelf heatMap entities.[0] 0.0
+
+    Assert.Equal(2, resultEntities.Length)
+    Assert.Equal(1, resultEntities.[1].Id)
+    Assert.Equal(3, resultEntities.[0].Id)
+
+[<Fact>]
+let ``Entities colliding and self should return many entities`` () =
+    let entities = 
+        [| 
+            {
+                Id = 1;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 1.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 2;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 1.5; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 3;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 2.0; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            };
+            {
+                Id = 4;
+                OwnerId = 0;
+                Circle = 
+                    {
+                        Position = { X = 0.5; Y = 0.0; };
+                        Radius = 0.5;
+                    };
+                Health = 250;
+            }
+        |]
+    let heatMap = { Entities = entities }
+
+    let resultEntities = entitiesCollidingAndSelf heatMap entities.[0] 0.0
+
+    Assert.Equal(4, resultEntities.Length)
