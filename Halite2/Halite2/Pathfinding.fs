@@ -4,6 +4,7 @@ open Constants
 open Collisions
 open Halite
 open Logs
+open System
 
 type HeatMap = {
     Entities: Entity[];
@@ -14,9 +15,9 @@ type MoveOrder = {
     Angle: int;
 }
 
-// type Path = MoveOrder list
-
-// type Obstacle = Entity
+type PathSide =
+    | Left
+    | Right
 
 type PathOrObstacle =
     | Path of MoveOrder list
@@ -181,11 +182,22 @@ let tryGetPositionBetween heatMap from minSpeed maxSpeed angle =
         )    
 
 let tryChooseBestPath heatMap (from: Position) (dest: Position) =
-    let rec tryChooseBestPath heatMap (from: Position) (dest: Position) =
+    let rec tryChooseBestPath heatMap (from: Position) (dest: Position) pathSideOption (previousObstacleOption: Entity option) =
         match goForwardOrReturnFirstObstacle heatMap from dest with
             | Path path -> Some path       
             | Obstacle obstacle ->
             (
+                let useLeftPath = 
+                    match (pathSideOption, previousObstacleOption) with
+                    | (Some pathSide, Some previousObstacle) 
+                        when (pathSide = Right && previousObstacle.Id = obstacle.Id) -> false
+                    | _ -> true
+                let useRightPath = 
+                    match (pathSideOption, previousObstacleOption) with
+                    | (Some pathSide, Some previousObstacle) 
+                        when (pathSide = Left && previousObstacle.Id = obstacle.Id) -> false
+                    | _ -> true
+
                 // find best path with recursive (tangent of obstacles)   
                 let tangents = circleTangentsFromPoint from obstacle.Circle
                 
@@ -209,18 +221,28 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                 let maxSpeedTangent = ceil(distanceFromToDest * cos leftAngle) |> int
 
                 // left tangent
-                let leftPositionBeforeObstacleOption = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int leftAngle)
                 let leftPath = 
-                    match leftPositionBeforeObstacleOption with
-                    | None -> None
-                    | Some leftPosition -> tryChooseBestPath heatMap leftPosition dest
+                    match useLeftPath with
+                    | false -> None
+                    | true ->
+                    (
+                        let leftPositionBeforeObstacleOption = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int leftAngle)
+                        match leftPositionBeforeObstacleOption with
+                        | None -> None
+                        | Some leftPosition -> tryChooseBestPath heatMap leftPosition dest (Some Left) (Some obstacle)
+                    )
 
                 // right tangent
-                let rightPositionBeforeObstacle = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int rightAngle)
                 let rightPath = 
-                    match rightPositionBeforeObstacle with
-                    | None -> None
-                    | Some rightPosition -> tryChooseBestPath heatMap rightPosition dest
+                    match useRightPath with
+                    | false -> None
+                    | true ->
+                    (
+                        let rightPositionBeforeObstacle = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int rightAngle)
+                        match rightPositionBeforeObstacle with
+                        | None -> None
+                        | Some rightPosition -> tryChooseBestPath heatMap rightPosition dest (Some Right) (Some obstacle)
+                    )
 
                 // use the fastest path
                 match (leftPath, rightPath) with
@@ -234,7 +256,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                             else right
                         )
             )
-    tryChooseBestPath heatMap from dest
+    tryChooseBestPath heatMap from dest None None
 
 let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
     // use heat map without own ship
