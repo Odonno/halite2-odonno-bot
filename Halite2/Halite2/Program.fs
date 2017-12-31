@@ -9,7 +9,10 @@ open Groups
 // TODO : Pathfinding - use second/third... obstacle path even if there is an obstacle between ship & the tangent
 // TODO : Stats - player stats (to get realtime ranking)
 // TODO : Groups - improve mining (better matching of closest group to planets)
+// TODO : Groups - improve attack (better matching of closest group to enemy ships)
 // TODO : Groups - defensive strategy (protect mining ships) when danger
+// TODO : Chore - Redux pattern
+// TODO : Logs - disable logs on Release mode
 
 [<EntryPoint>]
 let main argv =
