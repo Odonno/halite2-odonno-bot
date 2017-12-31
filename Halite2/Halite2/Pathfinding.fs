@@ -286,11 +286,12 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                     | false -> None
                     | true ->
                     (
-                        let tangents = circleTangentsFromPoint from leftObstacle.Circle
+                        let intermediateDest = { leftObstacle.Circle with Radius = leftObstacle.Circle.Radius + SHIP_RADIUS }
+                        let tangents = circleTangentsFromPoint from intermediateDest
                         let tangent = tangents.[0]
 
                         let tangentAngle = calculateAngleTo dest tangent
-                        let leftAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> ceil
+                        let leftAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> floor
 
                         // get min length ("from" to "tangent" point length)
                         let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
@@ -309,11 +310,12 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                     | false -> None
                     | true ->
                     (
-                        let tangents = circleTangentsFromPoint from rightObstacle.Circle
+                        let intermediateDest = { rightObstacle.Circle with Radius = rightObstacle.Circle.Radius + SHIP_RADIUS }
+                        let tangents = circleTangentsFromPoint from intermediateDest
                         let tangent = tangents.[1]
 
                         let tangentAngle = calculateAngleTo dest tangent
-                        let rightAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> floor
+                        let rightAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> ceil
 
                         // get min length ("from" to "tangent" point length)
                         let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
