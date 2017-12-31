@@ -15,12 +15,14 @@ type MoveOrder = {
     Angle: int;
 }
 
+type Path = MoveOrder list
+
 type PathSide =
     | Left
     | Right
 
 type PathOrObstacle =
-    | Path of MoveOrder list
+    | Path of Path
     | Obstacle of Entity   
 
 let calculateNewPosition (position: Position) distance angle =

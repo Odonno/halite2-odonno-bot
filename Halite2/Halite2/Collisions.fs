@@ -87,4 +87,18 @@ let circleTangentsFromPoint position circle =
             Y = circle.Radius * cos (b + a);  
         }
 
-    [| left; right; |]    
+    [| left; right; |]
+
+// create a circle using two points
+let createCircleFromPoints p1 p2 =
+    let dX = abs (p2.X - p1.X);
+    let dY = abs (p2.Y - p1.Y);
+
+    {
+        Position = 
+            {
+                X = (min p1.X p2.X) + (dX / 2.0);
+                Y = (min p1.Y p2.Y) + (dY / 2.0);
+            };
+        Radius = (sqrt (dX*dX + dY*dY)) / 2.0;
+    }
