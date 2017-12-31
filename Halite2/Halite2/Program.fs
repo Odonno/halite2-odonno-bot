@@ -7,7 +7,6 @@ open Groups
 
 // TODO : Pathfinding - use turns (Time dimension)
 // TODO : Pathfinding - use second/third... obstacle path even if there is an obstacle between ship & the tangent
-// TODO : Pathfinding - do not use point destination but circle destination
 // TODO : Stats - player stats (to get realtime ranking)
 // TODO : Groups - improve mining (better matching of closest group to planets)
 // TODO : Groups - defensive strategy (protect mining ships) when danger

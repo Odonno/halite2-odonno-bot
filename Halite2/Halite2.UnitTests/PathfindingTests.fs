@@ -3,6 +3,7 @@
 open Xunit
 open Halite
 open Pathfinding
+open Constants
 
 [<Fact>]
 let ``Try go forward returns no path if obstacle`` () =
@@ -19,7 +20,7 @@ let ``Try go forward returns no path if obstacle`` () =
         }
     let heatMap = { Entities = [| shipObstacle |] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 2.0; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 2.0; Y = 0.0; }) 0.0 SHIP_RADIUS
 
     match pathOrObstacle with
         | Obstacle o -> Assert.Equal(1, o.Id)
@@ -29,7 +30,7 @@ let ``Try go forward returns no path if obstacle`` () =
 let ``Try go forward returns empty path if same position`` () =
     let heatMap = { Entities = [||] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 0.0; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 0.0; Y = 0.0; }) 0.0 SHIP_RADIUS
     
     match pathOrObstacle with
         | Path p -> Assert.Equal(0, p.Length)
@@ -39,7 +40,7 @@ let ``Try go forward returns empty path if same position`` () =
 let ``Try go forward returns empty path if too close`` () =
     let heatMap = { Entities = [||] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 0.2; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 0.2; Y = 0.0; }) 0.0 SHIP_RADIUS
         
     match pathOrObstacle with
         | Path p -> Assert.Equal(0, p.Length)
@@ -49,7 +50,7 @@ let ``Try go forward returns empty path if too close`` () =
 let ``Try go forward returns simple path if no obstacle`` () =
     let heatMap = { Entities = [||] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 2.0; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 2.0; Y = 0.0; }) 0.0 SHIP_RADIUS
     
     match pathOrObstacle with
         | Path p -> 
@@ -65,7 +66,7 @@ let ``Try go forward returns simple path if no obstacle`` () =
 let ``Try go forward returns one path if no obstacle`` () =
     let heatMap = { Entities = [||] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 7.9; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 7.9; Y = 0.0; }) SHIP_RADIUS (SHIP_RADIUS*2.0)
     
     match pathOrObstacle with
         | Path p -> 
@@ -81,7 +82,7 @@ let ``Try go forward returns one path if no obstacle`` () =
 let ``Try go forward returns two paths if no obstacle`` () =
     let heatMap = { Entities = [||] }
 
-    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 8.1; Y = 0.0; })
+    let pathOrObstacle = goForwardOrReturnFirstObstacle heatMap ({ X = 0.0; Y = 0.0; }) ({ X = 8.1; Y = 0.0; }) 0.0 SHIP_RADIUS
     
     match pathOrObstacle with
         | Path p -> 

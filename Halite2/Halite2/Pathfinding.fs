@@ -200,30 +200,37 @@ let tryFindObstacle heatMap (from: Position) speed angle =
                 )           
         )
 
-let goForwardOrReturnFirstObstacle heatMap (from: Position) (dest: Position) =
-    let distanceToDest = floor (calculateDistanceTo from dest)
-    let distanceToDestInt = distanceToDest |> int
-    let angle = round (calculateAngleTo from dest) |> int
+let goForwardOrReturnFirstObstacle heatMap (from: Position) (target: Position) (minRadius: float) (maxRadius: float) =
+    let distanceToTarget = calculateDistanceTo from target
 
-    match tryFindObstacle heatMap from distanceToDestInt angle with
-        | Some obstacle -> obstacle |> Obstacle
-        | None ->
-        (
-            let numberOfTurns = ceil( distanceToDest / (float MAX_SPEED) ) |> int       
-            if numberOfTurns = 0 
-            then [] |> Path
-            else
-                ( 
-                    [ for turn in 1 .. numberOfTurns -> 
-                        (
-                            if (turn = numberOfTurns && (distanceToDestInt % MAX_SPEED) <> 0) 
-                            then distanceToDestInt % MAX_SPEED
-                            else 7
-                        )
-                    ]
-                    |> List.map (fun s -> { Speed = s; Angle = angle; }) 
-                ) |> Path
-        )  
+    let minDistanceToTarget = ceil(distanceToTarget - maxRadius)
+    let maxDistanceToTarget = distanceToTarget - minRadius
+
+    if (minDistanceToTarget > maxDistanceToTarget) 
+    then (Path [])
+    else
+        let minDistanceToTargetInt = minDistanceToTarget |> int
+        let angle = (calculateAngleTo from target) |> round |> int
+
+        match tryFindObstacle heatMap from minDistanceToTargetInt angle with
+            | Some obstacle -> obstacle |> Obstacle
+            | None ->
+            (
+                let numberOfTurns = ceil( minDistanceToTarget / (float MAX_SPEED) ) |> int       
+                if numberOfTurns = 0 
+                then [] |> Path
+                else
+                    ( 
+                        [ for turn in 1 .. numberOfTurns -> 
+                            (
+                                if (turn = numberOfTurns && (minDistanceToTargetInt % MAX_SPEED) <> 0) 
+                                then minDistanceToTargetInt % MAX_SPEED
+                                else 7
+                            )
+                        ]
+                        |> List.map (fun s -> { Speed = s; Angle = angle; }) 
+                    ) |> Path
+            )  
 
 let tryGetPositionBetween heatMap from minSpeed maxSpeed angle =
     [1..maxSpeed]
@@ -250,9 +257,9 @@ let tryGetPositionBetween heatMap from minSpeed maxSpeed angle =
                 | Some (_, position) -> Some position
         )    
 
-let tryChooseBestPath heatMap (from: Position) (dest: Position) =
-    let rec recursiveTryChooseBestPath heatMap (from: Position) (dest: Position) pathSideOption (previousObstacleOption: Entity option) =
-        match goForwardOrReturnFirstObstacle heatMap from dest with
+let tryChooseBestPath heatMap (from: Position) (target: Position) (minRadius: float) (maxRadius: float) =
+    let rec recursiveTryChooseBestPath heatMap (from: Position) (target: Position) pathSideOption (previousObstacleOption: Entity option) =
+        match goForwardOrReturnFirstObstacle heatMap from target minRadius maxRadius with
             | Path path -> Some path       
             | Obstacle obstacle ->
             (
@@ -277,8 +284,8 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                     | _ -> true
 
                 // calculate base distance and angle
-                let baseDistance = calculateDistanceTo from dest
-                let baseAngle = calculateAngleTo from dest
+                let baseDistance = calculateDistanceTo from target
+                let baseAngle = calculateAngleTo from target
 
                 // find best path with recursive (tangent of obstacles) 
                 let leftPathOption =
@@ -290,7 +297,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                         let tangents = circleTangentsFromPoint from intermediateDest
                         let tangent = tangents.[0]
 
-                        let tangentAngle = calculateAngleTo dest tangent
+                        let tangentAngle = calculateAngleTo target tangent
                         let leftAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> floor
 
                         // get min length ("from" to "tangent" point length)
@@ -302,7 +309,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                         let leftPositionBeforeObstacleOption = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int leftAngle)
                         match leftPositionBeforeObstacleOption with
                         | None -> None
-                        | Some leftPosition -> recursiveTryChooseBestPath heatMap leftPosition dest (Some Left) (Some leftObstacle)
+                        | Some leftPosition -> recursiveTryChooseBestPath heatMap leftPosition target (Some Left) (Some leftObstacle)
                     )
 
                 let rightPathOption =
@@ -314,7 +321,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                         let tangents = circleTangentsFromPoint from intermediateDest
                         let tangent = tangents.[1]
 
-                        let tangentAngle = calculateAngleTo dest tangent
+                        let tangentAngle = calculateAngleTo target tangent
                         let rightAngle = ((baseAngle + tangentAngle + 360.0) % 360.0) |> ceil
 
                         // get min length ("from" to "tangent" point length)
@@ -326,7 +333,7 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                         let rightPositionBeforeObstacle = tryGetPositionBetween heatMap from minSpeedTangent maxSpeedTangent (int rightAngle)
                         match rightPositionBeforeObstacle with
                         | None -> None
-                        | Some rightPosition -> recursiveTryChooseBestPath heatMap rightPosition dest (Some Right) (Some rightObstacle)
+                        | Some rightPosition -> recursiveTryChooseBestPath heatMap rightPosition target (Some Right) (Some rightObstacle)
                     )
 
                 // find best path from left or right tangent (use the fastest path)
@@ -341,37 +348,35 @@ let tryChooseBestPath heatMap (from: Position) (dest: Position) =
                             else rightPath
                         )
             )
-    recursiveTryChooseBestPath heatMap from dest None None
+    recursiveTryChooseBestPath heatMap from target None None
 
 let navigateToPlanet heatMap (ship: Ship) (planet: Planet) =
     // use heat map without own ship
     let heatMapWithoutOwnShip =
         { Entities = heatMap.Entities |> Array.filter (fun e -> e.Id <> ship.Entity.Id) }
 
-    // target one destination point (close to planet)
-    let destinationOption = tryGetPlanetDockingDestination heatMapWithoutOwnShip ship planet
+    // choose best move orders (path) to go to dest
+    let bestPathOption = 
+        tryChooseBestPath 
+            heatMapWithoutOwnShip 
+            ship.Entity.Circle.Position 
+            planet.Entity.Circle.Position
+            (planet.Entity.Circle.Radius + 1.0)
+            (planet.Entity.Circle.Radius + 4.0)
 
-    match destinationOption with
+    match bestPathOption with
         | None -> (heatMap, "")
-        | Some dest -> 
+        | Some [] -> (heatMap, "")
+        | Some bestPath ->
         (
-            // choose best move orders (path) to go to dest
-            let bestPathOption = tryChooseBestPath heatMapWithoutOwnShip ship.Entity.Circle.Position dest
-        
-            match bestPathOption with
-                | None -> (heatMap, "")
-                | Some [] -> (heatMap, "")
-                | Some bestPath ->
-                (
-                    // update heatmap based on orders
-                    let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
+            // update heatmap based on orders
+            let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
 
-                    // move using the first order
-                    let firstOrder = bestPath.[0]
-                    let command = thrust ship firstOrder.Speed firstOrder.Angle
+            // move using the first order
+            let firstOrder = bestPath.[0]
+            let command = thrust ship firstOrder.Speed firstOrder.Angle
 
-                    (newHeatMap, command)
-                )
+            (newHeatMap, command)
         )
 
 let navigateCloseToEnemy heatMap (ship: Ship) (enemyShip: Ship) =
@@ -379,28 +384,26 @@ let navigateCloseToEnemy heatMap (ship: Ship) (enemyShip: Ship) =
     let heatMapWithoutOwnShip =
         { Entities = heatMap.Entities |> Array.filter (fun e -> e.Id <> ship.Entity.Id) }
     
-    // target one destination point (close to enemy ship)
-    let destinationOption = tryGetPositionNearEnemyShip heatMapWithoutOwnShip ship enemyShip
-    
-    match destinationOption with
+    // choose best move orders (path) to go to dest
+    let bestPathOption = 
+        tryChooseBestPath 
+            heatMapWithoutOwnShip 
+            ship.Entity.Circle.Position 
+            enemyShip.Entity.Circle.Position
+            enemyShip.Entity.Circle.Radius
+            WEAPON_RADIUS
+
+    match bestPathOption with
         | None -> (heatMap, "")
-        | Some dest -> 
+        | Some [] -> (heatMap, "")
+        | Some bestPath ->
         (
-            // choose best move orders (path) to go to dest
-            let bestPathOption = tryChooseBestPath heatMapWithoutOwnShip ship.Entity.Circle.Position dest
-        
-            match bestPathOption with
-                | None -> (heatMap, "")
-                | Some [] -> (heatMap, "")
-                | Some bestPath ->
-                (
-                    // update heatmap based on orders
-                    let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
+            // update heatmap based on orders
+            let newHeatMap = updateHeatMapWithNewPath heatMap ship bestPath
 
-                    // move using the first order
-                    let firstOrder = bestPath.[0]
-                    let command = thrust ship firstOrder.Speed firstOrder.Angle
+            // move using the first order
+            let firstOrder = bestPath.[0]
+            let command = thrust ship firstOrder.Speed firstOrder.Angle
 
-                    (newHeatMap, command)
-                )
+            (newHeatMap, command)
         )
