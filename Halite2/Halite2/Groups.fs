@@ -17,6 +17,7 @@ type Group = {
     Ship: Ship; // TODO : From 1 ship per group To N ships per group
     Mission: GroupMission option;
     Target: Target option;
+    DistanceToTarget: float option;
 }
 
 let getLivingGroups (planets: Planet[]) (enemyShips: Ship[]) (myShips: Ship[]) groups = 
@@ -132,6 +133,8 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: Pla
                                     Ship = s; 
                                     Mission = Some Mining; 
                                     Target = Some (Planet stm.Planet);
+                                    DistanceToTarget = 
+                                        Some (calculateDistanceTo s.Entity.Circle.Position stm.Planet.Entity.Circle.Position);
                                 }
                             )
 
@@ -180,10 +183,14 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: Pla
                 |> Array.indexed
                 |> Array.map 
                     (fun (i, p) -> 
+                        let ship = remainingShips.[i]
+
                         { 
-                            Ship = remainingShips.[i]; 
+                            Ship = ship; 
                             Mission = Some Mining; 
                             Target = Some (Planet p);
+                            DistanceToTarget = 
+                                Some (calculateDistanceTo ship.Entity.Circle.Position p.Entity.Circle.Position);
                         }
                     )
 
@@ -196,10 +203,14 @@ let orderNewGroupsFullMining (planetsToConquer: Planet[]) (myShips: Ship[]) =
     |> Array.indexed
     |> Array.map 
         (fun (i, s) -> 
+            let planet = planetsToConquer.[i % numberOfPlanetsToConquer]
+
             { 
                 Ship = s; 
                 Mission = Some Mining; 
-                Target = Some (Planet planetsToConquer.[i % numberOfPlanetsToConquer]);
+                Target = Some (Planet planet);
+                DistanceToTarget = 
+                    Some (calculateDistanceTo s.Entity.Circle.Position planet.Entity.Circle.Position);
             }
         )
 
@@ -207,7 +218,18 @@ let orderNewGroupsSimpleMining (planetsToConquer: Planet[]) (myShips: Ship[]) =
     myShips
     |> Array.take (min myShips.Length planetsToConquer.Length)
     |> Array.indexed
-    |> Array.map (fun (i, s) -> { Ship = s; Mission = Some Mining; Target = Some (Planet planetsToConquer.[i]); })
+    |> Array.map 
+        (fun (i, s) -> 
+            let planet = planetsToConquer.[i]
+
+            { 
+                Ship = s; 
+                Mission = Some Mining; 
+                Target = Some (Planet planet);
+                DistanceToTarget = 
+                    Some (calculateDistanceTo s.Entity.Circle.Position planet.Entity.Circle.Position);
+            }
+        )
 
 let orderNewGroupsDumbAttack (enemyShips: Ship[]) (myShips: Ship[]) =
     let dockedEnemyShips =
@@ -230,5 +252,9 @@ let orderNewGroupsDumbAttack (enemyShips: Ship[]) (myShips: Ship[]) =
                     match enemy with
                     | None -> None
                     | Some e -> Some (Ship e)
+                DistanceToTarget = 
+                    match enemy with
+                    | None -> None
+                    | Some e -> Some (calculateDistanceTo myShip.Entity.Circle.Position e.Entity.Circle.Position)
             }
         )

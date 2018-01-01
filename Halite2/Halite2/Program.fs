@@ -113,6 +113,8 @@ let main argv =
                         groups
                         |> getGroupsWithUndockedShip
                         |> getGroupsWithTarget
+                        |> Array.filter (fun g -> g.DistanceToTarget.IsSome)
+                        |> Array.sortBy (fun g -> g.DistanceToTarget.Value)
                         |> Array.map 
                             (fun g -> 
                                 let ship = g.Ship
