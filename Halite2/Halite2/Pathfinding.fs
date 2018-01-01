@@ -217,19 +217,20 @@ let createMoveOrders speed angle =
             else { Speed = 7; Angle = angle }
         )
 
-let getTangentsFromObstacle currentTurn heatMap obstacle (ship: Ship) from target baseDistance baseAngle =
+let getTangentsFromObstacle currentTurn heatMap obstacle (ship: Ship) from target baseDistance =
     let intermediateDest = { obstacle.Circle with Radius = obstacle.Circle.Radius + SHIP_RADIUS }
+    let angleToObstacle = calculateAngleTo from obstacle.Circle.Position
     let tangents = circleTangentsFromPoint from intermediateDest
 
     // left tangent
     let leftTangent = tangents.[0]
-    let leftTangentAngle = (calculateAngleTo target leftTangent) |> floor |> int
-    let leftAngle = ((baseAngle + leftTangentAngle + 360) % 360)
+    let leftTangentAngle = (calculateAngleTo target leftTangent)
+    let leftAngle = ((angleToObstacle + leftTangentAngle + 360.0) % 360.0) |> floor |> int
 
     // right tangent
     let rightTangent = tangents.[1]
-    let rightTangentAngle = (calculateAngleTo target rightTangent) |> ceil |> int
-    let rightAngle = ((baseAngle + rightTangentAngle + 360) % 360)
+    let rightTangentAngle = (calculateAngleTo target rightTangent)
+    let rightAngle = ((angleToObstacle + rightTangentAngle + 360.0) % 360.0) |> ceil |> int
 
     // get min length ("from" to "tangent" point length)
     let minSpeedTangent = ceil(calculateDistanceTo from leftTangent) |> int
@@ -343,7 +344,6 @@ let tryChooseBestPathAlt (heatMap: HeatMap) (ship: Ship) (target: Position) (min
                                         from
                                         target
                                         baseDistance
-                                        baseAngle
                                 )
                             |> Array.reduce List.append
 
@@ -417,6 +417,7 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
 
                     // calculate base distance and angle
                     let baseDistance = calculateDistanceTo from target
+                    let angleToObstacle = calculateAngleTo from obstacle.Circle.Position
 
                     // find best path with recursive (tangent of obstacles) 
                     let leftPathOption =
@@ -428,8 +429,8 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let tangents = circleTangentsFromPoint from intermediateDest
                             let tangent = tangents.[0]
 
-                            let tangentAngle = (calculateAngleTo target tangent) |> floor |> int
-                            let leftAngle = ((baseAngle + tangentAngle + 360) % 360)
+                            let tangentAngle = (calculateAngleTo target tangent)
+                            let leftAngle = ((angleToObstacle + tangentAngle + 360.0) % 360.0)  |> floor |> int
 
                             // get min length ("from" to "tangent" point length)
                             let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
@@ -482,8 +483,8 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let tangents = circleTangentsFromPoint from intermediateDest
                             let tangent = tangents.[1]
 
-                            let tangentAngle = (calculateAngleTo target tangent) |> ceil |> int
-                            let rightAngle = ((baseAngle + tangentAngle + 360) % 360)
+                            let tangentAngle = (calculateAngleTo target tangent)
+                            let rightAngle = ((angleToObstacle + tangentAngle + 360.0) % 360.0) |> ceil |> int
 
                             // get min length ("from" to "tangent" point length)
                             let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
