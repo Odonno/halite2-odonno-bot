@@ -84,6 +84,7 @@ let dockableShips (planet: Planet) (myShips: Ship[]) =
 type MiningPlanet = {
     Planet: Planet;
     SlotsToMine: int;
+    Risk: float;
 }
 
 let tryGetPlanetTarget (target: Target option) =
@@ -113,6 +114,7 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: Pla
                 { 
                     Planet = stat.Planet;
                     SlotsToMine = stat.SlotsAvailable - (currentlyDockingShipsToPlanet.Length); 
+                    Risk = stat.Risk;
                 }
             )
         |> Array.filter (fun stm -> stm.SlotsToMine > 0)  
@@ -146,7 +148,7 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: Pla
                 )
             |> Array.reduce Array.append
 
-        let remainingSlotsToMine = 
+        let remainingMiningPlanets = 
             slotsToMine
             |> Array.map 
                 (fun stm ->
@@ -165,38 +167,132 @@ let orderNewGroupsSmartMining (existingGroups: Group[]) (planetsStatsToMine: Pla
                 )
             |> Array.filter (fun stm -> stm.SlotsToMine > 0)        
 
-        if (remainingSlotsToMine.Length <= 0)
+        if (remainingMiningPlanets.Length <= 0)
         then groupsOfImmediateDockableShips
         else
-            let remainingShips = getUnassignedShips groupsOfImmediateDockableShips myUndockedShips
+            let mutable remainingShips = getUnassignedShips groupsOfImmediateDockableShips myUndockedShips
 
-            let maxSlotToMine = remainingSlotsToMine |> Array.map (fun stm -> stm.SlotsToMine) |> Array.max
+            let remainingMiningPlanetsWithoutRisk =
+                remainingMiningPlanets
+                |> Array.filter (fun stm -> stm.Risk = 1.0)
 
-            let otherGroups = 
-                [| 1..maxSlotToMine |]
-                |> Array.map 
-                    (fun i -> 
-                        remainingSlotsToMine
-                        |> Array.filter (fun stm -> stm.SlotsToMine >= i)
-                        |> Array.map (fun stm -> stm.Planet)
-                    )
-                |> Array.reduce Array.append
-                |> Array.truncate remainingShips.Length
-                |> Array.indexed
-                |> Array.map 
-                    (fun (i, p) -> 
-                        let ship = remainingShips.[i]
+            if (remainingMiningPlanetsWithoutRisk.Length <= 0)
+            then 
+                let remainingMiningPlanetsWithRisk =
+                    remainingMiningPlanets 
+                    |> Array.filter (fun stm -> stm.Risk <> 1.0)
 
-                        { 
-                            Ship = ship; 
-                            Mission = Some Mining; 
-                            Target = Some (Planet p);
-                            DistanceToTarget = 
-                                Some (calculateDistanceTo ship.Entity.Circle.Position p.Entity.Circle.Position);
-                        }
-                    )
+                let maxSlotToMine = 
+                    remainingMiningPlanetsWithRisk
+                    |> Array.map (fun stm -> stm.SlotsToMine) 
+                    |> Array.max
 
-            Array.append groupsOfImmediateDockableShips otherGroups
+                let otherGroups = 
+                    [| 1..maxSlotToMine |]
+                    |> Array.map 
+                        (fun i -> 
+                            remainingMiningPlanets
+                            |> Array.filter (fun stm -> stm.SlotsToMine >= i)
+                            |> Array.map (fun stm -> stm.Planet)
+                        )
+                    |> Array.reduce Array.append
+                    |> Array.truncate remainingShips.Length
+                    |> Array.indexed
+                    |> Array.map 
+                        (fun (i, p) -> 
+                            let ship = remainingShips.[i]
+
+                            { 
+                                Ship = ship; 
+                                Mission = Some Mining; 
+                                Target = Some (Planet p);
+                                DistanceToTarget = 
+                                    Some (calculateDistanceTo ship.Entity.Circle.Position p.Entity.Circle.Position);
+                            }
+                        )
+
+                Array.concat [ groupsOfImmediateDockableShips; otherGroups; ]
+            else
+                let mutable slotsWithoutRisk = 
+                    remainingMiningPlanetsWithoutRisk 
+                    |> Array.map (fun stm -> List.init stm.SlotsToMine (fun i -> (i, stm)))
+                    |> Array.reduce List.append
+
+                let groupsWithoutRisk =
+                    [| 0..(slotsWithoutRisk.Length - 1) |]
+                    |> Array.choose 
+                        (fun _ ->
+                            if slotsWithoutRisk.Length <= 0 || remainingShips.Length <= 0
+                            then None
+                            else
+                                let distinctSlots = 
+                                    slotsWithoutRisk 
+                                    |> List.distinctBy (fun (_, swr) -> swr.Planet.Entity.Id) 
+
+                                let (ship, (j, stm)) =
+                                    remainingShips
+                                    |> Array.map 
+                                        (fun s ->
+                                            distinctSlots
+                                            |> List.map (fun slot -> (s, slot))
+                                        )
+                                    |> Array.reduce List.append
+                                    |> List.minBy (fun (ship, (_, stm)) -> calculateDistanceTo ship.Entity.Circle.Position stm.Planet.Entity.Circle.Position)
+
+                                let group = 
+                                    {
+                                        Ship = ship; 
+                                        Mission = Some Mining; 
+                                        Target = Some (Planet stm.Planet);
+                                        DistanceToTarget = 
+                                            Some (calculateDistanceTo ship.Entity.Circle.Position stm.Planet.Entity.Circle.Position);
+                                    }
+
+                                remainingShips <- getUnassignedShips [| group |] remainingShips
+                                slotsWithoutRisk <-
+                                    slotsWithoutRisk
+                                    |> List.filter (fun (k, swr) -> j <> k && stm.Planet.Entity.Id <> swr.Planet.Entity.Id)
+
+                                Some group
+                        )
+
+                let remainingMiningPlanetsWithRisk =
+                    remainingMiningPlanets 
+                    |> Array.filter (fun stm -> stm.Risk <> 1.0)
+
+                if (remainingMiningPlanetsWithRisk.Length <= 0)
+                then Array.concat [ groupsOfImmediateDockableShips; groupsWithoutRisk; ]
+                else
+                    let maxSlotToMine = 
+                        remainingMiningPlanetsWithRisk
+                        |> Array.map (fun stm -> stm.SlotsToMine) 
+                        |> Array.max
+
+                    let otherGroups = 
+                        [| 1..maxSlotToMine |]
+                        |> Array.map 
+                            (fun i -> 
+                                remainingMiningPlanetsWithRisk
+                                |> Array.filter (fun stm -> stm.SlotsToMine >= i)
+                                |> Array.map (fun stm -> stm.Planet)
+                            )
+                        |> Array.reduce Array.append
+                        |> Array.truncate remainingShips.Length
+                        |> Array.indexed
+                        |> Array.map 
+                            (fun (i, p) -> 
+                                let ship = remainingShips.[i]
+
+                                { 
+                                    Ship = ship; 
+                                    Mission = Some Mining; 
+                                    Target = Some (Planet p);
+                                    DistanceToTarget = 
+                                        Some (calculateDistanceTo ship.Entity.Circle.Position p.Entity.Circle.Position);
+                                }
+                            )
+
+                    Array.concat [ groupsOfImmediateDockableShips; groupsWithoutRisk; otherGroups; ]
 
 let orderNewGroupsFullMining (planetsToConquer: Planet[]) (myShips: Ship[]) =
     let numberOfPlanetsToConquer = planetsToConquer.Length

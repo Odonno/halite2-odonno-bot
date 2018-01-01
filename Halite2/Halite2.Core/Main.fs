@@ -9,9 +9,8 @@ open Groups
 // TODO : Pathfinding - use second/third... obstacle path even if there is an obstacle between ship & the tangent
 // TODO : Pathfinding - create an Obstacle Id instead of using Entity Id (differentiating obstacles from moves)
 // TODO : Stats - player stats (to get realtime ranking)
-// TODO : Groups - improve mining (better matching of closest group to planets)
 // TODO : Groups - improve attack (better matching of closest group to enemy ships)
-// TODO : Groups - defensive strategy (protect mining ships) when danger
+// TODO : Groups - improve mining : do not go mine if the path take too much turn (if before a new ship fully complete the planet production)
 // TODO : Chore - Redux pattern
 // TODO : Logs - disable logs on Release mode
 
