@@ -440,13 +440,13 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let tangent = tangents.[0]
 
                             let tangentAngle = (calculateAngleTo target tangent)
-                            let leftAngle = ((angleToObstacle + tangentAngle + 360.0) % 360.0)  |> floor |> int
+                            let leftAngle = ((angleToObstacle + tangentAngle + 360.0) % 360.0) |> floor |> int
 
                             // get min length ("from" to "tangent" point length)
-                            let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
+                            let minSpeedTangent = calculateDistanceTo from tangent |> ceil |> int
 
                             // get max length of the tangent (right angle to dest)
-                            let maxSpeedTangent = ceil(baseDistance * cos (float leftAngle)) |> int
+                            let maxSpeedTangent = baseDistance * abs (cos (float leftAngle)) |> ceil |> int
 
                             match getPositionBetweenOrObstacle currentTurn ship.Entity heatMap from minSpeedTangent maxSpeedTangent (int leftAngle) with
                             | None -> None
@@ -497,10 +497,10 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let rightAngle = ((angleToObstacle + tangentAngle + 360.0) % 360.0) |> ceil |> int
 
                             // get min length ("from" to "tangent" point length)
-                            let minSpeedTangent = ceil(calculateDistanceTo from tangent) |> int
+                            let minSpeedTangent = calculateDistanceTo from tangent |> ceil |> int
 
                             // get max length of the tangent (right angle to dest)
-                            let maxSpeedTangent = ceil(baseDistance * cos (float rightAngle)) |> int
+                            let maxSpeedTangent = baseDistance * abs (cos (float rightAngle)) |> ceil |> int
 
                             match getPositionBetweenOrObstacle currentTurn ship.Entity heatMap from minSpeedTangent maxSpeedTangent (int rightAngle) with
                             | None -> None
