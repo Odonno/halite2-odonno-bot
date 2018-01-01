@@ -4,10 +4,12 @@ open System
 open Halite
 open Statistics
 open Collisions
+open Constants
 
 type GroupMission = 
     | Mining
     | Attack
+    | Protect
 
 type Target =
     | Planet of Planet
@@ -258,3 +260,63 @@ let orderNewGroupsDumbAttack (enemyShips: Ship[]) (myShips: Ship[]) =
                     | Some e -> Some (calculateDistanceTo myShip.Entity.Circle.Position e.Entity.Circle.Position)
             }
         )
+
+let orderNewGroupsDumbProtect (existingGroups: Group[]) (planetsStatsToMine: PlanetStat[]) (enemyShips: Ship[]) (myShips: Ship[]) =   
+    let groupsToProtect =
+        existingGroups
+        |> Array.filter 
+            (fun g -> 
+                let distanceToClosestEnemy = 
+                    enemyShips
+                    |> Array.map (fun enemyShip -> calculateDistanceTo enemyShip.Entity.Circle.Position g.Ship.Entity.Circle.Position)
+                    |> Array.min                
+
+                match tryGetPlanetTarget g.Target with
+                | None -> false
+                | Some targetPlanet ->
+                (
+                    let planetStatOption = 
+                        planetsStatsToMine 
+                        |> Array.filter (fun stat -> stat.Planet.Entity.Id = targetPlanet.Entity.Id)
+                        |> Array.tryHead
+
+                    match planetStatOption with
+                    | None -> false
+                    | Some planetStat ->
+                    (
+                        g.Ship.DockingStatus <> Undocked &&
+                        g.Target.IsSome &&
+                        g.Mission.IsSome && 
+                        g.Mission.Value = Mining &&
+                        distanceToClosestEnemy < float (MAX_SPEED * (planetStat.NumberOfTurnsBeforeNewShip + 1))
+                    )
+                )
+            )
+
+    if groupsToProtect.Length <= 0
+    then [||]
+    else
+        let mutable myUndockedShips = myShips |> Array.filter (fun s -> s.DockingStatus = Undocked)
+
+        groupsToProtect
+        |> Array.truncate myUndockedShips.Length
+        |> Array.map 
+            (fun groupToProtect ->
+                let closestAllyShip =   
+                    myUndockedShips
+                    |> Array.sortBy (fun s -> calculateDistanceTo s.Entity.Circle.Position groupToProtect.Ship.Entity.Circle.Position)              
+                    |> Array.head
+
+                let protectGroup =
+                    {
+                        Ship = closestAllyShip;
+                        Mission = Some Protect;
+                        Target = Some (Ship groupToProtect.Ship);
+                        DistanceToTarget = 
+                            Some (calculateDistanceTo closestAllyShip.Entity.Circle.Position groupToProtect.Ship.Entity.Circle.Position);
+                    }
+
+                myUndockedShips <- getUnassignedShips [| protectGroup |] myUndockedShips
+
+                protectGroup
+            )

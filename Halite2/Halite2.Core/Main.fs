@@ -89,18 +89,23 @@ let execute botName =
                         |> getGroupsWithTarget
                         |> unassignMiningGroupIfNoInterest planetsStatsToMine
 
-                    let newMiningGroups = 
+                    let newDefendingGroups = // order to protect ships
                         getUnassignedShips existingGroups myPlayer.Ships
-                        |> orderNewGroupsSmartMining existingGroups planetsStatsToMine
+                        |> orderNewGroupsDumbProtect existingGroups planetsStatsToMine enemyShips
 
-                    let groups2 = Array.append existingGroups newMiningGroups
+                    let groups2 = Array.append existingGroups newDefendingGroups
 
-                    // order to attack enemy ships
-                    let newAttackGroups = 
+                    let newMiningGroups = // order to mine planets
                         getUnassignedShips groups2 myPlayer.Ships
+                        |> orderNewGroupsSmartMining groups2 planetsStatsToMine
+
+                    let groups3 = Array.append groups2 newMiningGroups
+
+                    let newAttackGroups = // order to attack enemy ships
+                        getUnassignedShips groups3 myPlayer.Ships
                         |> orderNewGroupsDumbAttack enemyShips
 
-                    groups <- Array.append groups2 newAttackGroups
+                    groups <- Array.append groups3 newAttackGroups
 
                     // Pathfinding
                     let heatMapTurns = 50

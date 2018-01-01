@@ -16,6 +16,7 @@ type PlanetStat = {
     IsNeutral: bool;
     SlotsAvailable: int;
     CanProduceMore: bool;
+    NumberOfTurnsBeforeNewShip: int;
 }
 
 let analysePlanet planet player (undockedEnemyShips: Ship[]) biggestPlanet smallestPlanet =
@@ -57,6 +58,9 @@ let analysePlanet planet player (undockedEnemyShips: Ship[]) biggestPlanet small
             )
 
     let slotsAvailable = planet.NumDockingSpots - planet.NumDockedShips
+    let unitsLeftToProduceNewShip = PRODUCTIVITY_REQUIRED_FOR_NEW_SHIP - planet.CurrentProduction
+    let numberOfTurnsToProduceNewShip = 
+        (float unitsLeftToProduceNewShip / (float BASE_PRODUCTIVITY * float planet.NumDockedShips)) |> ceil |> int
 
     {
         Planet = planet;
@@ -68,4 +72,5 @@ let analysePlanet planet player (undockedEnemyShips: Ship[]) biggestPlanet small
         IsNeutral = isNeutral;
         SlotsAvailable = slotsAvailable;
         CanProduceMore = slotsAvailable > 0;
+        NumberOfTurnsBeforeNewShip = numberOfTurnsToProduceNewShip;
     }

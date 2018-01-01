@@ -36,5 +36,8 @@ let DOCK_TURNS = 5
 // Number of production units per turn contributed by each docked ship
 let BASE_PRODUCTIVITY = 6
 
+// Number of production units required to produce a new ship 
+let PRODUCTIVITY_REQUIRED_FOR_NEW_SHIP = 72
+
 // Distance from the planets edge at which new ships are created
 let SPAWN_RADIUS = 2.0
