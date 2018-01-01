@@ -38,6 +38,31 @@ let getLivingGroups (planets: Planet[]) (enemyShips: Ship[]) (myShips: Ship[]) g
 let getGroupsWithTarget groups = 
     groups |> Array.filter (fun g -> g.Target.IsSome)
 
+let unassignMiningGroupIfNoInterest (planetsStatsToMine: PlanetStat[]) groups =
+    let planetsToMine = planetsStatsToMine |> Array.map (fun stat -> stat.Planet)
+
+    groups 
+    |> Array.filter 
+        (fun g ->
+            let toUnassign = 
+                g.Mission.IsSome && 
+                g.Mission.Value = Mining &&
+                g.Ship.DockingStatus = Undocked &&
+                g.Target.IsSome &&
+                (
+                    planetsToMine 
+                    |> Array.exists 
+                        (fun p -> 
+                            match g.Target with
+                            | Some (Planet planet) -> p.Entity.Id = planet.Entity.Id
+                            | _ -> false
+                        ) 
+                    |> not
+                )
+
+            not toUnassign
+        )
+
 let getGroupsWithUndockedShip groups = 
     groups |> Array.filter (fun g -> g.Ship.DockingStatus = Undocked)
 

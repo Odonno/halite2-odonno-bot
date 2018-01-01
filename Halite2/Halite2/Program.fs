@@ -11,7 +11,6 @@ open Groups
 // TODO : Groups - improve mining (better matching of closest group to planets)
 // TODO : Groups - improve attack (better matching of closest group to enemy ships)
 // TODO : Groups - defensive strategy (protect mining ships) when danger
-// TODO : Groups - unassign mining group if planet is already full mined
 // TODO : Chore - Redux pattern
 // TODO : Logs - disable logs on Release mode
 
@@ -78,18 +77,19 @@ let main argv =
                         gameMap.Planets 
                         |> Array.map (fun p -> analysePlanet p myPlayer undockedEnemyShips biggestPlanet smallestPlanet)
 
-                    // Manage groups
-                    let existingGroups = 
-                        groups
-                        |> getLivingGroups gameMap.Planets enemyShips myPlayer.Ships
-                        |> getGroupsWithTarget
-
                     // order to mine planets (based on search criteria)
                     let planetsStatsToMine = 
                         planetStats
                         |> Array.filter (fun stat -> stat.CanProduceMore)
                         |> Array.filter (fun stat -> not stat.IsEnemy)
                         |> Array.sortByDescending (fun stat -> (stat.ProductionInterest + 1.0) * (stat.Risk + 1.0))
+
+                    // Manage groups
+                    let existingGroups = 
+                        groups
+                        |> getLivingGroups gameMap.Planets enemyShips myPlayer.Ships
+                        |> getGroupsWithTarget
+                        |> unassignMiningGroupIfNoInterest planetsStatsToMine
 
                     let newMiningGroups = 
                         getUnassignedShips existingGroups myPlayer.Ships
