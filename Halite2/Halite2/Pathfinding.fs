@@ -117,6 +117,16 @@ let updateHeatMapWithNewPath heatMap (ship: Ship) (path: Path) =
                 { turnHeatMap with Entities = Array.append turnHeatMap.Entities moveEntities }
         )
 
+let updateHeatMapWithStationaryShip heatMap (ship: Ship) =
+    heatMap
+    |> List.map 
+        (fun heatMapTurn ->
+            if heatMapTurn.Turn = 1
+            then heatMapTurn
+            else 
+                { heatMapTurn with Entities = Array.append heatMapTurn.Entities [| ship.Entity |] }
+        )
+
 let calculateNumberOfTurns speed =
     (float speed / 7.0) |> ceil |> int
 
@@ -583,8 +593,8 @@ let navigateToPlanet (heatMap: HeatMap) (ship: Ship) (planet: Planet) =
             (planet.Entity.Circle.Radius + 4.0)
 
     match bestPathOption with
-        | None -> (heatMap, "")
-        | Some [] -> (heatMap, "")
+        | None -> (updateHeatMapWithStationaryShip heatMap ship, "")
+        | Some [] -> (updateHeatMapWithStationaryShip heatMap ship, "")
         | Some bestPath ->
         (
             // update heatmap based on orders
@@ -608,8 +618,8 @@ let navigateCloseToEnemy (heatMap: HeatMap) (ship: Ship) (enemyShip: Ship) =
             WEAPON_RADIUS
 
     match bestPathOption with
-        | None -> (heatMap, "")
-        | Some [] -> (heatMap, "")
+        | None -> (updateHeatMapWithStationaryShip heatMap ship, "")
+        | Some [] -> (updateHeatMapWithStationaryShip heatMap ship, "")
         | Some bestPath ->
         (
             // update heatmap based on orders
