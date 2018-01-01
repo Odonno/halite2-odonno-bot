@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Halite2", "Halite2\Halite2.fsproj", "{9783878E-6068-43D2-A3FA-BAA49717532D}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Halite2", "Halite2\Halite2.fsproj", "{9783878E-6068-43D2-A3FA-BAA49717532D}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Halite2.PerformanceTests", "Halite2.PerformanceTests\Halite2.PerformanceTests.fsproj", "{C1C7608B-D8AD-41B4-A929-0056D6CD4154}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Halite2.PerformanceTests", "Halite2.PerformanceTests\Halite2.PerformanceTests.fsproj", "{C1C7608B-D8AD-41B4-A929-0056D6CD4154}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Halite2.UnitTests", "Halite2.UnitTests\Halite2.UnitTests.fsproj", "{E2B5DB23-4EB9-4F92-B9B0-7CE96CDA904C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Halite2.UnitTests", "Halite2.UnitTests\Halite2.UnitTests.fsproj", "{E2B5DB23-4EB9-4F92-B9B0-7CE96CDA904C}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Halite2.Core", "Halite2.Core\Halite2.Core.fsproj", "{DAEE64BD-3BFA-4488-9DF3-444FDA5C83D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{E2B5DB23-4EB9-4F92-B9B0-7CE96CDA904C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2B5DB23-4EB9-4F92-B9B0-7CE96CDA904C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2B5DB23-4EB9-4F92-B9B0-7CE96CDA904C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAEE64BD-3BFA-4488-9DF3-444FDA5C83D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAEE64BD-3BFA-4488-9DF3-444FDA5C83D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAEE64BD-3BFA-4488-9DF3-444FDA5C83D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAEE64BD-3BFA-4488-9DF3-444FDA5C83D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

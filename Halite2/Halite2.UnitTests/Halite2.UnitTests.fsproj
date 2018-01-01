@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Halite2\Halite2.fsproj" />
+    <ProjectReference Include="..\Halite2.Core\Halite2.Core.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

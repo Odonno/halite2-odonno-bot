@@ -6,13 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Constants.fs" />
-    <Compile Include="Collisions.fs" />
-    <Compile Include="Halite.fs" />
-    <Compile Include="Logs.fs" />
-    <Compile Include="Statistics.fs" />
-    <Compile Include="Groups.fs" />
-    <Compile Include="Pathfinding.fs" />
+    <ProjectReference Include="..\Halite2.Core\Halite2.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="Program.fs" />
   </ItemGroup>
 
