@@ -16,10 +16,10 @@ type Circle = {
 
 // Rectangle in 2D space
 type Rectangle = {
-    TopLeft: float;
-    TopRight: float;
-    BottomLeft: float;
-    BottomRight: float;
+    Left: float;
+    Right: float;
+    Top: float;
+    Bottom: float;
 }
 
 // calculateDistanceTo returns a euclidean distance to the target
@@ -66,8 +66,8 @@ let isInCircle position circle =
 
 // get tangent of the circle based on a point
 let circleTangentsFromPoint position circle =
-    let dX = circle.Position.X - position.X;
-    let dY = circle.Position.Y - position.Y;
+    let dX = circle.Position.X - position.X
+    let dY = circle.Position.Y - position.Y
 
     let squareDistance = dX*dX + dY*dY
     let squareRadius = circle.Radius*circle.Radius
@@ -91,8 +91,8 @@ let circleTangentsFromPoint position circle =
 
 // create a circle using two points
 let createCircleFromPoints p1 p2 =
-    let dX = abs (p2.X - p1.X);
-    let dY = abs (p2.Y - p1.Y);
+    let dX = abs (p2.X - p1.X)
+    let dY = abs (p2.Y - p1.Y)
 
     {
         Position = 
@@ -102,3 +102,53 @@ let createCircleFromPoints p1 p2 =
             };
         Radius = (sqrt (dX*dX + dY*dY)) / 2.0;
     }
+
+// create a square using two points
+let createSquareFromPoints p1 p2 =
+    {
+        Left = min p1.X p2.X;
+        Right = max p1.X p2.X;
+        Top = min p1.Y p2.Y;
+        Bottom = max p1.Y p2.Y;
+    }
+
+// detect if 2D object is in a circle
+let isInRect position rect =
+    position.X >= rect.Left &&
+    position.X <= rect.Right &&
+    position.Y >= rect.Top &&
+    position.Y <= rect.Right
+
+// detects if a rectangle and a circle collides
+let circleAndRectCollide rect circle =
+    let rectCenter = 
+        {
+            X = rect.Left + ((rect.Right - rect.Left) / 2.0);
+            Y = rect.Top + ((rect.Bottom - rect.Top) / 2.0);
+        }
+
+    let circleDistanceX = abs (circle.Position.X - rectCenter.X)
+    let circleDistanceY = abs (circle.Position.Y - rectCenter.Y)
+
+    let rectWidth = rect.Right - rect.Left
+    let rectHeight = rect.Bottom - rect.Top
+
+    if (circleDistanceX > (rectWidth / 2.0 + circle.Radius))
+    then false
+    else
+    if (circleDistanceY > (rectHeight / 2.0 + circle.Radius))
+    then false
+    else
+    if (circleDistanceX <= (rectWidth / 2.0))
+    then true
+    else
+    if (circleDistanceY <= (rectHeight / 2.0))
+    then true
+    else
+        let cdWidth = (circleDistanceX - rectWidth / 2.0)
+        let cdHeight = (circleDistanceY - rectHeight / 2.0)
+        let cornerDistance = 
+            cdWidth*cdWidth +
+            cdHeight*cdHeight;
+
+        (cornerDistance <= (circle.Radius*circle.Radius));

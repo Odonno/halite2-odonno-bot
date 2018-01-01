@@ -5,6 +5,11 @@ open Halite
 open Pathfinding
 
 let executeAll times =
+    logPerfs 
+        "calculateNumberOfTurns" 
+        (fun _ -> (calculateNumberOfTurns 15) |> ignore) 
+        times
+
     let planet1 = {
         Entity = 
             {
@@ -35,5 +40,5 @@ let executeAll times =
 
     logPerfs 
         "createHeatMap" 
-        (fun _ -> (createHeatMap planets myShips) |> ignore) 
+        (fun _ -> (createHeatMap 10 planets myShips) |> ignore) 
         times
