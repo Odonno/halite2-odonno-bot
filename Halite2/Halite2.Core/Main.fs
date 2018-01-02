@@ -11,6 +11,7 @@ open Groups
 // TODO : Stats - player stats (to get realtime ranking)
 // TODO : Groups - improve attack (better matching of closest group to enemy ships)
 // TODO : Groups - improve mining : do not go mine if the path take too much turn (if before a new ship fully complete the planet production)
+// TODO : Groups - triangle strategy (for attack and protect)
 // TODO : Chore - Redux pattern
 
 let execute botName =
