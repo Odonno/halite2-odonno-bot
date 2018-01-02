@@ -3,8 +3,6 @@
 open Constants
 open Collisions
 open Halite
-open Logs
-open System
 
 type HeatMapTurn = {
     Turn: int;
@@ -463,7 +461,7 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                                         (Some obstacle)
                                         (parentPath @ moveOrders)
                                 )   
-                            | _ > None                     
+                            | _ -> None                     
                         )
 
                     let rightPathOption =

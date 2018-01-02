@@ -4,7 +4,6 @@ open System
 open Constants
 open Halite
 open Collisions
-open Logs
 
 type PlanetStat = {
     Planet: Planet;

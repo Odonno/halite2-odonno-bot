@@ -1,6 +1,5 @@
 ﻿module Groups
 
-open System
 open Halite
 open Statistics
 open Collisions
