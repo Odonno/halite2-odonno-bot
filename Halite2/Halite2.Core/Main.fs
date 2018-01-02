@@ -12,7 +12,6 @@ open Groups
 // TODO : Groups - improve attack (better matching of closest group to enemy ships)
 // TODO : Groups - improve mining : do not go mine if the path take too much turn (if before a new ship fully complete the planet production)
 // TODO : Chore - Redux pattern
-// TODO : Logs - disable logs on Release mode
 
 let execute botName =
     // initialize game state

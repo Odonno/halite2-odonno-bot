@@ -449,25 +449,6 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let maxSpeedTangent = baseDistance * abs (cos (float leftAngle)) |> ceil |> int
 
                             match getPositionBetweenOrObstacle currentTurn ship.Entity heatMap from minSpeedTangent maxSpeedTangent (int leftAngle) with
-                            | None -> None
-                            | Some (_, PositionOrObstacle.Obstacle leftObstacle) -> 
-                                (
-                                    None
-                                    // let newAngle = calculateAngleTo from leftObstacle.Circle.Position
-
-                                    // if (sin (degreesToRadians newAngle)) < 0.0
-                                    // then None
-                                    // else
-                                    //     recursiveTryChooseBestPath 
-                                    //         currentTurn 
-                                    //         heatMap 
-                                    //         from 
-                                    //         target 
-                                    //         (Some newAngle)
-                                    //         (Some Left) 
-                                    //         (Some leftObstacle)
-                                    //         parentPath
-                                )
                             | Some (speed, PositionOrObstacle.Position leftPosition) -> 
                                 (
                                     let moveOrders = createMoveOrders speed baseAngle
@@ -481,7 +462,8 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                                         (Some Left) 
                                         (Some obstacle)
                                         (parentPath @ moveOrders)
-                                )                        
+                                )   
+                            | _ > None                     
                         )
 
                     let rightPathOption =
@@ -503,25 +485,6 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                             let maxSpeedTangent = baseDistance * abs (cos (float rightAngle)) |> ceil |> int
 
                             match getPositionBetweenOrObstacle currentTurn ship.Entity heatMap from minSpeedTangent maxSpeedTangent (int rightAngle) with
-                            | None -> None
-                            | Some (_, PositionOrObstacle.Obstacle rightObstacle) -> 
-                                (
-                                    None
-                                    // let newAngle = calculateAngleTo from rightObstacle.Circle.Position
-                                    
-                                    // if (sin (degreesToRadians newAngle)) < 0.0
-                                    // then None
-                                    // else
-                                    //     recursiveTryChooseBestPath 
-                                    //         currentTurn 
-                                    //         heatMap 
-                                    //         from 
-                                    //         target 
-                                    //         (Some newAngle)
-                                    //         (Some Right) 
-                                    //         (Some rightObstacle)
-                                    //         parentPath
-                                )
                             | Some (speed, PositionOrObstacle.Position rightPosition) -> 
                                 (
                                     let moveOrders = createMoveOrders speed baseAngle
@@ -535,7 +498,8 @@ let tryChooseBestPath (heatMap: HeatMap) (ship: Ship) (target: Position) (minRad
                                         (Some Right) 
                                         (Some obstacle)
                                         (parentPath @ moveOrders)
-                                ) 
+                                )
+                            | _ -> None
                         )
 
                     // find best path from left or right tangent (use the fastest path)
