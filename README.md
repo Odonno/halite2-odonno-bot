@@ -13,7 +13,7 @@ Bot written in F# for Halite2 contest
   * Closest planets
 * Create groups of one ship
   * With a target (Planet or Ship)
-  * With a mission (Mining, Defending, Attacking)
+  * With a mission (Mining | Defending | Attacking)
   * Priority order: Mining >> Defending >> Attacking
 * Pathfinding
   * Try to move forward
